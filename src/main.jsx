@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  Shield, ShieldCheck, Fingerprint, Globe2, MapPin, Smartphone, Wifi,
-  BatteryFull, Power, LockKeyhole, RefreshCw, Info, Share, Download,
+  Shield, ShieldCheck, Fingerprint, Globe2, MapPin, Smartphone,
+  Power, LockKeyhole, RefreshCw, Info, Share, Download,
   PlusSquare, MoreVertical, BellRing
 } from 'lucide-react';
 import './style.css';
@@ -142,12 +142,6 @@ function App() {
   return (
     <main className="app-shell">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
-      <header className="statusbar">
-        <div className="status-left"><span className="signal"><i/><i/><i/><i/></span><span>Anon</span><Wifi size={17}/></div>
-        <span className="clock">08:00</span>
-        <div className="status-right"><span>100%</span><BatteryFull size={23}/></div>
-      </header>
-
       <section className="brand-block">
         <div className="shield-wrap">
           <div className="shield-aura" />

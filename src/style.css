@@ -12,3 +12,131 @@
 .protection-card.off .feature-status{color:#ff626f}.protection-card.off .status-dot{background:#ff4d5e;box-shadow:0 0 9px #ff4d5e}.power-orb.inactive{border-color:#ff5365;box-shadow:0 0 0 5px #ff435522,0 0 28px #ff435566,inset 0 0 28px #ff435522;color:#ffb4bc;filter:none;opacity:1}.power-orb.inactive .orb-ring{border-top-color:#ffb4bc;border-right-color:#ff4355;filter:drop-shadow(0 0 7px #ff4355)}.power-orb.inactive svg{color:#ff9aa5;filter:drop-shadow(0 0 10px #ff4355)}.power-orb.inactive strong{color:#ff7d89}
 .install-shell{position:relative;isolation:isolate;min-height:100svh;overflow:hidden;padding:34px 22px 42px;background:radial-gradient(ellipse at 50% 10%,#28113d 0%,#100c1b 38%,#08070e 76%);display:flex;flex-direction:column;align-items:center}.install-brand{text-align:center;margin:5vh auto 28px}.install-shield{position:relative;width:92px;height:92px;margin:0 auto 5px;display:grid;place-items:center;color:#d8b7ff;filter:drop-shadow(0 0 13px #a23dff)}.install-shield span{position:absolute;font-family:Orbitron,sans-serif;font-size:39px;font-weight:700;color:#f4e8ff;text-shadow:0 0 15px #b15bff}.install-brand .wordmark{font-size:48px}.install-brand .protected-pill{height:40px;font-size:11px;margin-top:13px}.install-card{width:min(100%,480px);border:1px solid #ffffff20;border-radius:23px;padding:23px 20px;background:linear-gradient(145deg,#191322ed,#0e0b16f5);box-shadow:0 18px 55px #0008}.install-kicker{display:flex;align-items:center;gap:8px;color:#c58bff;font-size:10px;letter-spacing:1.7px;font-weight:700}.install-card h1{font-size:27px;line-height:1.15;margin:13px 0 8px;letter-spacing:-.6px}.install-intro{color:#b4aabd;font-size:13px;line-height:1.5;margin:0 0 22px}.install-steps{display:flex;flex-direction:column;gap:17px}.install-step{display:flex;gap:13px;align-items:flex-start}.install-step>span{width:27px;height:27px;flex:none;border-radius:50%;display:grid;place-items:center;background:#7d35b9;color:white;font-size:12px;font-weight:700;box-shadow:0 0 14px #a34cff55}.install-step strong{display:block;font-size:13px;margin:2px 0 4px}.install-step p{font-size:11px;line-height:1.55;color:#a99fb4;margin:0}.install-step b{color:#e6d5f7}.inline-icon{width:15px;height:15px;vertical-align:middle;color:#d0a2ff;margin:0 2px}.install-foot{display:flex;align-items:center;gap:8px;border-top:1px solid #ffffff16;margin-top:22px;padding-top:15px;color:#96899f;font-size:10px;line-height:1.4}.install-foot svg{flex:none;color:#bd7cff}.app-message{position:fixed;z-index:8;bottom:18px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 30px);display:flex;align-items:center;gap:8px;border:1px solid #a65be6;border-radius:14px;padding:11px 13px;background:#211631;color:#f1e6ff;font:inherit;font-size:11px;box-shadow:0 8px 30px #0009}.app-message svg{flex:none;color:#c58bff}.app-message span{font-size:17px;color:#c9b5dc}
 @media(min-width:600px){.install-shell{justify-content:center;padding-top:25px}.install-brand{margin:0 auto 28px}}
+
+
+/* Viewport-fitted dashboard: keep the complete app visible without page scrolling. */
+html, body, #root { height:100%; min-height:0; }
+body { min-height:100%; overflow:hidden; }
+.app-shell {
+  height:100vh;
+  height:100svh;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-evenly;
+  gap:clamp(3px, .7svh, 9px);
+  padding: max(env(safe-area-inset-top), 7px) clamp(12px, 4vw, 24px) max(env(safe-area-inset-bottom), 7px);
+}
+.brand-block {
+  flex:0 1 auto;
+  min-height:0;
+  padding-top:0;
+}
+.shield-wrap {
+  width:clamp(54px, 12svh, 104px);
+  height:clamp(58px, 12.5svh, 110px);
+  margin-bottom:0;
+}
+.brand-shield { width:92%; height:96%; }
+.shield-letter { font-size:clamp(25px, 5.2svh, 41px); top:29%; }
+.wordmark {
+  font-size:clamp(29px, 7.2vw, 49px);
+  line-height:1;
+  margin:2px 0 8px;
+}
+.protected-pill {
+  height:clamp(29px, 5.5svh, 39px);
+  max-width:min(330px, 88%);
+  font-size:clamp(9px, 2.5vw, 11px);
+  gap:7px;
+}
+.protected-pill svg { width:17px; height:17px; }
+.power-section {
+  height:auto;
+  min-height:0;
+  flex:0 1 clamp(112px, 23svh, 190px);
+  width:100%;
+}
+.map-dots { inset:0 -10px; }
+.power-orb {
+  width:clamp(106px, 21svh, 178px);
+  height:clamp(106px, 21svh, 178px);
+  gap:3px;
+}
+.power-orb svg { width:clamp(30px, 6svh, 48px); height:auto; margin-bottom:1px; }
+.orb-label { font-size:clamp(11px, 2.8vw, 14px); }
+.power-orb strong { font-size:clamp(13px, 3.5vw, 17px); }
+.protection-list {
+  flex:1 1 auto;
+  min-height:0;
+  gap:clamp(3px, .65svh, 7px);
+}
+.protection-card {
+  flex:1 1 0;
+  min-height:0;
+  padding:clamp(4px, .9svh, 8px) clamp(7px, 2vw, 12px);
+  gap:clamp(6px, 1.7vw, 10px);
+  border-radius:clamp(10px, 2.5vw, 16px);
+}
+.feature-icon { width:clamp(25px, 6svh, 36px); height:clamp(25px, 6svh, 36px); }
+.feature-icon svg { width:clamp(20px, 5svh, 28px); height:auto; }
+.feature-copy h2 { font-size:clamp(10px, 2.8vw, 13px); margin-bottom:2px; }
+.feature-copy p { font-size:clamp(8px, 2.1vw, 10px); }
+.feature-status { min-width:clamp(46px, 12vw, 59px); font-size:clamp(8px, 2.2vw, 10px); gap:4px; }
+.status-dot { width:6px; height:6px; }
+.toggle { width:clamp(34px, 9vw, 40px); height:22px; padding:3px; }
+.toggle span { width:16px; height:16px; }
+.toggle.on span { transform:translateX(12px); }
+.telemetry-card {
+  flex:0 0 auto;
+  margin:0;
+  padding:clamp(7px, 1.5svh, 12px) 4px;
+  border-radius:14px;
+}
+.telemetry-item { gap:4px; padding:0 3px; }
+.telemetry-item svg { width:clamp(14px, 3.8svh, 20px); height:auto; }
+.telemetry-item small { font-size:clamp(7px, 1.8vw, 9px); margin-bottom:2px; letter-spacing:.2px; }
+.telemetry-item strong { font-size:clamp(7px, 1.9vw, 9px); }
+.demo-note {
+  flex:0 0 auto;
+  margin:0;
+  font-size:clamp(7px, 1.8vw, 9px);
+  line-height:1.2;
+  gap:3px;
+}
+.demo-note svg { width:11px; height:11px; flex:none; }
+.app-message { bottom:max(8px, env(safe-area-inset-bottom)); font-size:10px; padding:8px 10px; }
+
+@media (max-height:700px) {
+  .app-shell { gap:3px; padding-top:max(env(safe-area-inset-top), 4px); padding-bottom:max(env(safe-area-inset-bottom), 4px); }
+  .power-section { flex-basis:clamp(94px, 19svh, 132px); }
+  .power-orb { width:clamp(90px, 18svh, 132px); height:clamp(90px, 18svh, 132px); }
+  .brand-block .wordmark { margin-bottom:4px; }
+  .protection-list { gap:3px; }
+  .protection-card { padding-top:2px; padding-bottom:2px; }
+  .telemetry-card { padding-top:6px; padding-bottom:6px; }
+}
+@media (max-height:580px) {
+  .shield-wrap { width:48px; height:51px; }
+  .brand-block .wordmark { font-size:27px; margin:0 0 4px; }
+  .protected-pill { height:25px; }
+  .power-section { flex-basis:82px; }
+  .power-orb { width:78px; height:78px; }
+  .power-orb svg { width:24px; }
+  .orb-label { font-size:9px; }
+  .power-orb strong { font-size:11px; }
+  .feature-copy p { display:none; }
+  .feature-icon { width:23px; height:23px; }
+  .feature-icon svg { width:19px; }
+  .telemetry-card { padding:4px 2px; }
+  .demo-note { font-size:7px; }
+}
+@media (orientation:landscape) and (max-height:520px) {
+  .app-shell { max-width:900px; display:grid; grid-template-columns:minmax(115px, .75fr) minmax(0, 1.25fr); grid-template-rows:auto 1fr auto; column-gap:12px; row-gap:4px; }
+  .brand-block { grid-column:1; grid-row:1; align-self:center; }
+  .power-section { grid-column:1; grid-row:2; flex:none; height:auto; }
+  .protection-list { grid-column:2; grid-row:1 / span 2; }
+  .telemetry-card { grid-column:1 / -1; grid-row:3; }
+  .demo-note { display:none; }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Anon Privacy Console",
+  "short_name": "Anon",
+  "description": "A visual cybersecurity and privacy dashboard concept.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08070e",
+  "theme_color": "#08070e",
+  "icons": [{ "src": "/shield.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

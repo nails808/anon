@@ -63,7 +63,7 @@ export function parseAmountToCents(raw) {
   }
   const [whole, frac = ''] = s.split('.');
   const cents = Number(whole) * 100 + Number((frac + '00').slice(0, 2));
-  if (!Number.isFinite(cents) || cents < 0) throw new Error('Amount is invalid');
+  if (!Number.isFinite(cents) || cents <= 0) throw new Error('Amount must be a positive value');
   if (cents > 99_999_999_99) throw new Error('Amount is too large');
   const display = (cents / 100).toFixed(2);
   return { cents, display };

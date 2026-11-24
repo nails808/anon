@@ -8,6 +8,7 @@
  */
 import {
   ensureSchema,
+  findUserByEmail,
   getPushForUser,
   getUserStats,
   getUserDetail,
@@ -124,14 +125,45 @@ export async function notifyAdminsNewUser(env, user) {
 
 /* ── flag / arg parsing ────────────────────────────────── */
 
+/**
+ * Parse -/flag values without naive space-splitting.
+ * Supports:
+ *   -d "quoted value with spaces"
+ *   -d 'quoted value'
+ *   -d unquoted multi word until next -<letter> flag or end
+ */
 function parseFlags(text) {
   const flags = {};
-  const re = /-([a-z])\s+("([^"]*)"|'([^']*)'|(\S+))/gi;
+  // Drop the leading command token
+  const body = String(text || '').replace(/^\s*\/\S+\s*/, '');
+  const re = /-([a-zA-Z])(?:\s+|$)/g;
+  const hits = [];
   let m;
-  while ((m = re.exec(text)) !== null) {
-    flags[m[1].toLowerCase()] = (m[3] ?? m[4] ?? m[5] ?? '').trim();
+  while ((m = re.exec(body)) !== null) {
+    hits.push({ key: m[1].toLowerCase(), index: m.index, end: m.index + m[0].length });
+  }
+  for (let i = 0; i < hits.length; i++) {
+    const start = hits[i].end;
+    const stop = i + 1 < hits.length ? hits[i + 1].index : body.length;
+    let raw = body.slice(start, stop).trim();
+    if (
+      (raw.startsWith('"') && raw.endsWith('"') && raw.length >= 2) ||
+      (raw.startsWith("'") && raw.endsWith("'") && raw.length >= 2)
+    ) {
+      raw = raw.slice(1, -1);
+    }
+    flags[hits[i].key] = raw.trim();
   }
   return flags;
+}
+
+function isValidPhone(phone) {
+  const s = String(phone || '').trim();
+  if (!s) return false;
+  // Allow +, digits, spaces, dashes, parentheses; 8–20 digits total
+  if (!/^[+0-9()\-\s]+$/.test(s)) return false;
+  const digits = s.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15;
 }
 
 function isValidEmail(email) {
@@ -364,34 +396,90 @@ registerCommand('/user', {
 registerCommand('/payid', {
   admin: true,
   description: 'Create a payment receipt and send Web Push',
-  usage:
-    '<code>/payid -b &lt;bank&gt; -u &lt;user&gt; -a &lt;amount&gt; -n &lt;name&gt; -t &lt;target&gt; [-d &lt;description&gt;] [-p &lt;phone&gt;]</code>\n' +
-    `Banks: ${BANK_KEYS.join(', ')} (cba → commbank)\n` +
-    'Required: -b -u -a -n -t · Optional: -d (default Goods), -p',
+  usage: PAYID_USAGE,
   async handler(ctx) {
+    const USAGE =
+      `Usage:\n` +
+      `<code>/payid -b bank -u email -a amount -n "sender" -t "recipient" [-d "description"] [-p phone]</code>\n\n` +
+      `Banks: ${BANK_KEYS.join(', ')} (alias cba → commbank)\n` +
+      `Required: -b -u -a -n -t\n` +
+      `Optional: -d (default Goods), -p\n` +
+      `Tip: quote values that contain spaces, e.g. -d "Home repairs"`;
+
     const flags = ctx.flags;
     const missing = [];
     if (!flags.b) missing.push('-b (bank)');
     if (!flags.u) missing.push('-u (user email)');
     if (!flags.a) missing.push('-a (amount)');
     if (!flags.n) missing.push('-n (sender name)');
-    if (!flags.t) missing.push('-t (target)');
+    if (!flags.t) missing.push('-t (recipient name)');
 
     if (missing.length) {
       await telegramSend(
         ctx.env,
         ctx.chatId,
-        `❌ Missing required flags: ${missing.join(', ')}\n\n` +
-          `<code>/payid -b bank -u email -a amount -n name -t target</code>`
+        `❌ Missing required flags: ${missing.join(', ')}\n\n${USAGE}`
       );
       logAdmin('payid_invalid', { fromId: ctx.fromId, missing });
+      return;
+    }
+
+    if (!isValidEmail(flags.u)) {
+      await telegramSend(
+        ctx.env,
+        ctx.chatId,
+        `❌ Invalid user email: <code>${escapeHtml(flags.u)}</code>\n\n${USAGE}`
+      );
+      return;
+    }
+
+    if (!resolveBank(flags.b)) {
+      await telegramSend(
+        ctx.env,
+        ctx.chatId,
+        `❌ Unknown bank <code>${escapeHtml(flags.b)}</code>.\nAllowed: ${BANK_KEYS.join(', ')}\n\n${USAGE}`
+      );
+      logAdmin('payid_bad_bank', { fromId: ctx.fromId, bank: flags.b });
+      return;
+    }
+
+    if (flags.p && !isValidPhone(flags.p)) {
+      await telegramSend(
+        ctx.env,
+        ctx.chatId,
+        `❌ Invalid phone number: <code>${escapeHtml(flags.p)}</code>\nUse 8–15 digits (spaces, +, dashes allowed).`
+      );
+      return;
+    }
+
+    // Resolve user + require push BEFORE any DB write
+    const user = await findUserByEmail(ctx.env, flags.u);
+    if (!user) {
+      await telegramSend(
+        ctx.env,
+        ctx.chatId,
+        `❌ No app user found for <code>${escapeHtml(flags.u)}</code>.`
+      );
+      logAdmin('payid_user_missing', { fromId: ctx.fromId, email: flags.u });
+      return;
+    }
+
+    const sub = await getPushForUser(ctx.env, user.id);
+    if (!sub) {
+      await telegramSend(
+        ctx.env,
+        ctx.chatId,
+        `❌ User <code>${escapeHtml(user.email)}</code> has no active Web Push subscription.\n` +
+          `Ask them to open the app and enable notifications before issuing a receipt.`
+      );
+      logAdmin('payid_no_push', { fromId: ctx.fromId, userId: user.id });
       return;
     }
 
     let created;
     try {
       created = await createPayReceipt(ctx.env, {
-        userEmail: flags.u,
+        userId: user.id,
         amount: flags.a,
         senderName: flags.n,
         targetName: flags.t,
@@ -401,24 +489,16 @@ registerCommand('/payid', {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Could not create receipt';
-      await telegramSend(ctx.env, ctx.chatId, `❌ ${escapeHtml(msg)}`);
+      await telegramSend(ctx.env, ctx.chatId, `❌ ${escapeHtml(msg)}\n\n${USAGE}`);
       logAdmin('payid_error', { fromId: ctx.fromId, error: msg });
       return;
     }
 
-    const { receipt, bank, user } = created;
-    const sub = await getPushForUser(ctx.env, user.id);
-    if (!sub) {
-      await telegramSend(
-        ctx.env,
-        ctx.chatId,
-        `⚠️ Receipt <code>${escapeHtml(receipt.id)}</code> saved, but user <code>${escapeHtml(user.email)}</code> has no Web Push subscription.`
-      );
-      logAdmin('payid_no_push', { fromId: ctx.fromId, userId: user.id, receiptId: receipt.id });
-      return;
-    }
-
-    const workerOrigin = String(ctx.env.WORKER_PUBLIC_URL || ctx.env.APP_ORIGIN || '').replace(/\/$/, '');
+    const { receipt, bank } = created;
+    const workerOrigin = String(ctx.env.WORKER_PUBLIC_URL || ctx.env.APP_ORIGIN || '').replace(
+      /\/$/,
+      ''
+    );
     const receiptUrl = workerOrigin
       ? `${workerOrigin}/pay/receipt/${receipt.id}`
       : `/pay/receipt/${receipt.id}`;
@@ -437,7 +517,7 @@ registerCommand('/payid', {
 
     const statusLine = pushResult.ok
       ? `✅ Push sent (${pushResult.status || 201})`
-      : `⚠️ Receipt saved but push failed: ${pushResult.error || pushResult.status}`;
+      : `⚠️ Receipt saved but push delivery failed: ${pushResult.error || pushResult.status}`;
 
     logAdmin('payid_ok', {
       fromId: ctx.fromId,
@@ -456,7 +536,10 @@ registerCommand('/payid', {
         `User: <code>${escapeHtml(user.email)}</code>\n` +
         `Bank: ${bank.display}\n` +
         `Amount: $${escapeHtml(receipt.amount)}\n` +
+        `From: ${escapeHtml(receipt.sender_name)}\n` +
         `To: ${escapeHtml(receipt.target_name)}\n` +
+        `Description: ${escapeHtml(receipt.description)}\n` +
+        (receipt.phone ? `Phone: ${escapeHtml(receipt.phone)}\n` : '') +
         `Link: ${receiptUrl}`
     );
   },

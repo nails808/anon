@@ -17,7 +17,8 @@ const protections = [
 
 const SESSION_KEY = 'anon_session_token';
 const REMEMBER_KEY = 'anon_remember_email';
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const DEFAULT_API_BASE = 'https://anon-push-api.bittermusic.workers.dev';
+const API_BASE = (import.meta.env.VITE_API_BASE || DEFAULT_API_BASE).replace(/\/$/, '');
 
 const isStandalone = () =>
   window.matchMedia?.('(display-mode: standalone)').matches ||

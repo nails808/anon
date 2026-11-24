@@ -55,7 +55,6 @@ export async function ensureSchema(env) {
       )
     `),
     env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_created_at ON push_subscriptions(created_at)`),
-    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`),
     env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS pay_receipts (
         id TEXT PRIMARY KEY NOT NULL,
@@ -92,6 +91,12 @@ export async function ensureSchema(env) {
       /* column already exists */
     }
   }
+
+  // Older installations created push_subscriptions without user_id. Create this
+  // index only after the compatibility upgrade above has added the column.
+  await env.DB.prepare(
+    `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`
+  ).run();
 }
 
 export async function findUserByEmail(env, email) {

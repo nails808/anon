@@ -17,6 +17,7 @@ const protections = [
 
 const SESSION_KEY = 'anon_session_token';
 const REMEMBER_KEY = 'anon_remember_email';
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 
 const isStandalone = () =>
   window.matchMedia?.('(display-mode: standalone)').matches ||
@@ -44,7 +45,7 @@ async function api(path, { method = 'GET', body, token } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   const t = token ?? getStoredToken();
   if (t) headers.Authorization = `Bearer ${t}`;
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     body: body != null ? JSON.stringify(body) : undefined,

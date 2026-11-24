@@ -10,6 +10,6 @@ migrations_dir = "migrations"
 
 [vars]
 # Exact HTTPS origin of the PWA (CORS). Example: https://anon.example.com
-APP_ORIGIN = "https://REPLACE_WITH_YOUR_DOMAIN"
+APP_ORIGIN = "https://anon-orcin-beta.vercel.app"
 # Public base URL of this Worker (used in receipt links in push notifications)
 WORKER_PUBLIC_URL = "https://anon-push-api.bittermusic.workers.dev"

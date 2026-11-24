@@ -60,9 +60,11 @@ Edit `wrangler.toml`:
 Set secrets:
 
 ```bash
-npx wrangler secret put BOT_TOKEN          # from BotFather
-npx wrangler secret put BOT_SECRET         # random string for webhook header
-npx wrangler secret put ADMIN_IDS          # your Telegram numeric user id(s), comma-separated
+# Telegram (preferred names; BOT_* aliases still work)
+npx wrangler secret put TELEGRAM_BOT_TOKEN      # from @BotFather
+npx wrangler secret put TELEGRAM_WEBHOOK_SECRET # random string; must match setWebhook secret_token
+npx wrangler secret put TELEGRAM_ADMIN_ID       # your numeric Telegram user id (comma-separated for multiple)
+
 npx wrangler secret put VAPID_PUBLIC_KEY
 npx wrangler secret put VAPID_PRIVATE_KEY  # full JWK JSON from web-push, or base64url PKCS8
 npx wrangler secret put VAPID_SUBJECT      # e.g. mailto:you@example.com
@@ -77,10 +79,23 @@ npx wrangler deploy
 ## 5. Telegram webhook
 
 ```bash
-curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
   -d "url=https://<your-worker>/telegram/webhook" \
-  -d "secret_token=<BOT_SECRET>"
+  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
+
+After registration, the admin receives:
+
+```
+NEW USER REGISTERED
+
+Username: user@example.com
+User ID: 42
+Created: 2026-11-24 03:40:00 UTC
+```
+
+Admin commands: `/help`, `/whoami`, `/status`, `/payid` (admin id only).
+
 
 ## 6. Frontend deploy
 

@@ -102,8 +102,13 @@ async function handleRegister(request, env) {
     throw e;
   }
 
+  // Notify only after successful INSERT (duplicate emails never reach here)
   try {
-    await notifyAdminsNewUser(env, user.email);
+    await notifyAdminsNewUser(env, {
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+    });
   } catch (e) {
     console.log('notifyAdminsNewUser failed', e);
   }

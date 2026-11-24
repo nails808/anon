@@ -1,47 +1,49 @@
-import { escapeHtml, formatAestDateTime, formatAmount, baseShell } from './helpers.js';
+import {
+  prepareReceiptData,
+  documentShell,
+  closeNav,
+  SHARED_NAV_CSS,
+  row,
+} from './helpers.js';
 
-export function render(data) {
-  const amount = formatAmount(data.amount);
-  const when = formatAestDateTime(data.created_at);
-  const phoneBlock = data.phone ? `<div class="sub">${escapeHtml(data.phone)}</div>` : '';
+export function render(raw) {
+  const d = prepareReceiptData(raw);
+  const phoneBlock = d.phone ? `<div class="phone-line">${d.phone}</div>` : '';
+
+  const styles = `
+${SHARED_NAV_CSS}
+.wrap{background:#0e0e0e}
+.nav{border-bottom:1px solid #333}
+.status-pill{background:#333;color:#ddd}
+.card{background:#1a1a1a;border:1px solid #333}
+.logo{font-weight:700;font-size:15px;letter-spacing:3px;color:#aaa;margin-bottom:10px}
+.stripe{height:3px;background:#fff;width:48px;margin:0 auto 16px}
+`;
 
   const body = `
-<style>
-  .nab-root{min-height:100vh;background:#f0f0f0;color:#111;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));background:#c6007e;color:#fff;font-size:16px;font-weight:500}
-  .nav a,.nav button{background:none;border:none;color:#fff;font-size:16px;cursor:pointer}
-  .hero{background:#fff;text-align:center;padding:32px 20px 24px}
-  .check{width:56px;height:56px;border-radius:50%;background:#008a00;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
-  .paid{font-size:20px;font-weight:600}
-  .sub{margin-top:6px;font-size:14px;color:#555}
-  .card{margin:16px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;font-size:14px}
-  .row:last-child{border-bottom:none}
-  .label{color:#666}
-  .value{font-weight:500;text-align:right}
-  .foot{margin:16px 20px;font-size:12px;color:#666;text-align:center;line-height:1.4}
-  .osko{text-align:center;margin:8px 0 28px;font-size:13px;color:#555}
-</style>
-<div class="nab-root">
-  <header class="nav">
-    <a href="javascript:history.back()">Close</a>
-    <span>Receipt</span>
-    <button type="button" onclick="navigator.share?navigator.share({title:'Receipt',url:location.href}):0">Share</button>
-  </header>
-  <div class="hero">
-    <div class="check">✓</div>
-    <div class="paid">Paid $${escapeHtml(amount)} to ${escapeHtml(data.target_name)}</div>
+<div class="wrap">
+  ${closeNav({ title: 'Transaction', accent: '#fff' })}
+  <section class="hero">
+    <div class="logo">NAB</div>
+    <div class="stripe"></div>
+    <div class="status-pill">Internal record</div>
+    <div class="amount">$${d.amount}</div>
+    <div class="recipient">to ${d.target_name}</div>
     ${phoneBlock}
-  </div>
-  <div class="card">
-    <div class="row"><span class="label">Receipt no.</span><span class="value">${escapeHtml(data.id)}</span></div>
-    <div class="row"><span class="label">From</span><span class="value">${escapeHtml(data.sender_name)}</span></div>
-    <div class="row"><span class="label">Description</span><span class="value">${escapeHtml(data.description || 'Goods')}</span></div>
-    <div class="row"><span class="label">Transaction Date</span><span class="value">${escapeHtml(when)}</span></div>
-  </div>
-  <p class="foot">This payment may take up to 24 hours to appear in your transaction history.</p>
-  <div class="osko">Sent through Osko</div>
+  </section>
+  <section class="card">
+    ${row('From', d.sender_name)}
+    ${row('Description', d.description)}
+    ${row('Date', d.created_at)}
+    ${row('Reference', d.id)}
+  </section>
+  <p class="foot">Internal application record — not a NAB bank confirmation.</p>
 </div>`;
 
-  return baseShell({ title: `NAB Receipt ${data.id}`, bodyHtml: body });
+  return documentShell({
+    title: `NAB receipt ${d.id}`,
+    themeColor: '#0e0e0e',
+    styles,
+    bodyHtml: body,
+  });
 }

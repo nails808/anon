@@ -1,47 +1,48 @@
-import { escapeHtml, formatAestDateTime, formatAmount, baseShell } from './helpers.js';
+import {
+  prepareReceiptData,
+  documentShell,
+  closeNav,
+  SHARED_NAV_CSS,
+  row,
+} from './helpers.js';
 
-export function render(data) {
-  const amount = formatAmount(data.amount);
-  const when = formatAestDateTime(data.created_at);
-  const phoneBlock = data.phone ? `<div class="sub">${escapeHtml(data.phone)}</div>` : '';
+export function render(raw) {
+  const d = prepareReceiptData(raw);
+  const phoneBlock = d.phone ? `<div class="phone-line">${d.phone}</div>` : '';
+
+  const styles = `
+${SHARED_NAV_CSS}
+.wrap{background:linear-gradient(180deg,#1a0b24 0%,#0d0612 100%)}
+.nav{background:transparent}
+.status-pill{background:#ff7eb622;color:#ffb3d9}
+.card{background:#241230;border:1px solid #ff7eb633}
+.logo{font-weight:800;font-size:28px;background:linear-gradient(90deg,#ff7eb6,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+.amount{background:linear-gradient(90deg,#ff7eb6,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+`;
 
   const body = `
-<style>
-  .up-root{min-height:100vh;background:#0d0d0d;color:#f5f5f5;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));font-size:16px}
-  .nav a,.nav button{background:none;border:none;color:#f5f5f5;font-size:16px;cursor:pointer}
-  .hero{text-align:center;padding:32px 20px 20px}
-  .check{width:56px;height:56px;border-radius:50%;background:#ff7a59;color:#0d0d0d;display:inline-flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;margin-bottom:14px}
-  .paid{font-size:20px;font-weight:600}
-  .sub{margin-top:6px;font-size:14px;opacity:.75}
-  .card{margin:12px 16px;background:#1a1a1a;border-radius:16px;overflow:hidden}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #2a2a2a;font-size:14px}
-  .row:last-child{border-bottom:none}
-  .label{opacity:.55}
-  .value{font-weight:500;text-align:right}
-  .foot{margin:16px 20px;font-size:12px;opacity:.6;text-align:center;line-height:1.4}
-  .osko{text-align:center;margin:8px 0 28px;font-size:13px;opacity:.7}
-</style>
-<div class="up-root">
-  <header class="nav">
-    <a href="javascript:history.back()">Close</a>
-    <span>Receipt</span>
-    <button type="button" onclick="navigator.share?navigator.share({title:'Receipt',url:location.href}):0">Share</button>
-  </header>
-  <div class="hero">
-    <div class="check">✓</div>
-    <div class="paid">Paid $${escapeHtml(amount)} to ${escapeHtml(data.target_name)}</div>
+<div class="wrap">
+  ${closeNav({ title: 'Up', accent: '#ff7eb6' })}
+  <section class="hero">
+    <div class="logo">up.</div>
+    <div class="status-pill">Internal record</div>
+    <div class="amount">$${d.amount}</div>
+    <div class="recipient">to ${d.target_name}</div>
     ${phoneBlock}
-  </div>
-  <div class="card">
-    <div class="row"><span class="label">Receipt no.</span><span class="value">${escapeHtml(data.id)}</span></div>
-    <div class="row"><span class="label">From</span><span class="value">${escapeHtml(data.sender_name)}</span></div>
-    <div class="row"><span class="label">Description</span><span class="value">${escapeHtml(data.description || 'Goods')}</span></div>
-    <div class="row"><span class="label">Transaction Date</span><span class="value">${escapeHtml(when)}</span></div>
-  </div>
-  <p class="foot">This payment may take up to 24 hours to appear in your transaction history.</p>
-  <div class="osko">Sent through Osko</div>
+  </section>
+  <section class="card">
+    ${row('From', d.sender_name)}
+    ${row('Description', d.description)}
+    ${row('Date', d.created_at)}
+    ${row('Reference', d.id)}
+  </section>
+  <p class="foot">Internal application record — not an Up bank confirmation.</p>
 </div>`;
 
-  return baseShell({ title: `Up Receipt ${data.id}`, bodyHtml: body });
+  return documentShell({
+    title: `Up receipt ${d.id}`,
+    themeColor: '#1a0b24',
+    styles,
+    bodyHtml: body,
+  });
 }

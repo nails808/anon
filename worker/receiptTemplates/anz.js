@@ -1,47 +1,49 @@
-import { escapeHtml, formatAestDateTime, formatAmount, baseShell } from './helpers.js';
+import {
+  prepareReceiptData,
+  documentShell,
+  closeNav,
+  SHARED_NAV_CSS,
+  row,
+} from './helpers.js';
 
-export function render(data) {
-  const amount = formatAmount(data.amount);
-  const when = formatAestDateTime(data.created_at);
-  const phoneBlock = data.phone ? `<div class="sub">${escapeHtml(data.phone)}</div>` : '';
+export function render(raw) {
+  const d = prepareReceiptData(raw);
+  const phoneBlock = d.phone ? `<div class="phone-line">${d.phone}</div>` : '';
+
+  const styles = `
+${SHARED_NAV_CSS}
+.wrap{background:#0b1520}
+.nav{background:#007dba}
+.status-pill{background:#007dba33;color:#7ec8e8}
+.card{background:#122233;border:1px solid #007dba44}
+.logo{font-weight:800;font-size:18px;color:#7ec8e8;letter-spacing:2px;margin-bottom:8px}
+.circle{width:56px;height:56px;border-radius:50%;border:3px solid #007dba;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;color:#7ec8e8;font-size:22px}
+`;
 
   const body = `
-<style>
-  .anz-root{min-height:100vh;background:#0a1628;color:#fff;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));font-size:16px}
-  .nav a,.nav button{background:none;border:none;color:#fff;font-size:16px;cursor:pointer}
-  .hero{text-align:center;padding:28px 20px}
-  .check{width:56px;height:56px;border-radius:50%;background:#00a9e0;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
-  .paid{font-size:20px;font-weight:600}
-  .sub{margin-top:6px;opacity:.8;font-size:14px}
-  .card{margin:12px 16px;background:#132038;border-radius:12px;overflow:hidden}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
-  .row:last-child{border-bottom:none}
-  .label{opacity:.6}
-  .value{font-weight:500;text-align:right}
-  .foot{margin:16px 20px;font-size:12px;opacity:.65;text-align:center;line-height:1.4}
-  .osko{text-align:center;margin:8px 0 28px;font-size:13px;opacity:.75}
-</style>
-<div class="anz-root">
-  <header class="nav">
-    <a href="javascript:history.back()">Close</a>
-    <span>Receipt</span>
-    <button type="button" onclick="navigator.share?navigator.share({title:'Receipt',url:location.href}):0">Share</button>
-  </header>
-  <div class="hero">
-    <div class="check">✓</div>
-    <div class="paid">Paid $${escapeHtml(amount)} to ${escapeHtml(data.target_name)}</div>
+<div class="wrap">
+  ${closeNav({ title: 'Receipt', accent: '#7ec8e8' })}
+  <section class="hero">
+    <div class="logo">ANZ</div>
+    <div class="circle">✓</div>
+    <div class="status-pill">Recorded</div>
+    <div class="amount">$${d.amount}</div>
+    <div class="recipient">to ${d.target_name}</div>
     ${phoneBlock}
-  </div>
-  <div class="card">
-    <div class="row"><span class="label">Receipt no.</span><span class="value">${escapeHtml(data.id)}</span></div>
-    <div class="row"><span class="label">From</span><span class="value">${escapeHtml(data.sender_name)}</span></div>
-    <div class="row"><span class="label">Description</span><span class="value">${escapeHtml(data.description || 'Goods')}</span></div>
-    <div class="row"><span class="label">Transaction Date</span><span class="value">${escapeHtml(when)}</span></div>
-  </div>
-  <p class="foot">This payment may take up to 24 hours to appear in your transaction history.</p>
-  <div class="osko">Sent through Osko</div>
+  </section>
+  <section class="card">
+    ${row('From', d.sender_name)}
+    ${row('Description', d.description)}
+    ${row('Date', d.created_at)}
+    ${row('Reference', d.id)}
+  </section>
+  <p class="foot">Internal application record — not an ANZ bank confirmation.</p>
 </div>`;
 
-  return baseShell({ title: `ANZ Receipt ${data.id}`, bodyHtml: body });
+  return documentShell({
+    title: `ANZ receipt ${d.id}`,
+    themeColor: '#007dba',
+    styles,
+    bodyHtml: body,
+  });
 }

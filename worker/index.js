@@ -272,9 +272,22 @@ async function handleUnsubscribe(request, env) {
   return json({ ok: true, status: 'unsubscribed' });
 }
 
-async function handleReceipt(_request, env, id) {
-  const row = await getReceipt(env, id);
-  if (!row) return html('<h1>Receipt not found</h1>', 404);
+async function handleReceipt(request, env, id) {
+  const safeId = String(id || '').trim();
+  if (!safeId || !/^N\d+$/.test(safeId)) {
+    return html(notFoundPage('Invalid receipt reference'), 404);
+  }
+
+  const row = await getReceipt(env, safeId);
+  if (!row) {
+    return html(notFoundPage('Receipt not found'), 404);
+  }
+
+  // If the request carries a session, require ownership (admins use Telegram, not this page)
+  const session = await requireUser(request, env);
+  if (session && Number(session.user_id) !== Number(row.user_id)) {
+    return html(notFoundPage('You do not have access to this record'), 403);
+  }
 
   const render = RECEIPT_RENDERERS[row.bank] || RECEIPT_RENDERERS.commbank;
   const page = render({
@@ -288,6 +301,17 @@ async function handleReceipt(_request, env, id) {
     created_at: row.created_at,
   });
   return html(page);
+}
+
+function notFoundPage(message) {
+  const msg = String(message || 'Not found')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Receipt</title>
+<style>body{font-family:system-ui,sans-serif;background:#0a0a0a;color:#eee;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px;text-align:center}
+h1{font-size:18px;font-weight:600;margin:0 0 8px}p{opacity:.6;font-size:14px;margin:0}</style></head>
+<body><div><h1>${msg}</h1><p>Internal application record</p></div></body></html>`;
 }
 
 export default {

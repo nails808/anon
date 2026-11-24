@@ -1,47 +1,50 @@
-import { escapeHtml, formatAestDateTime, formatAmount, baseShell } from './helpers.js';
+import {
+  prepareReceiptData,
+  documentShell,
+  closeNav,
+  SHARED_NAV_CSS,
+  row,
+} from './helpers.js';
 
-export function render(data) {
-  const amount = formatAmount(data.amount);
-  const when = formatAestDateTime(data.created_at);
-  const phoneBlock = data.phone ? `<div class="sub">${escapeHtml(data.phone)}</div>` : '';
+export function render(raw) {
+  const d = prepareReceiptData(raw);
+  const phoneBlock = d.phone ? `<div class="phone-line">${d.phone}</div>` : '';
+
+  const styles = `
+${SHARED_NAV_CSS}
+.wrap{background:#1a0a0c}
+.nav{background:#da1710;color:#fff}
+.status-pill{background:#da171033;color:#ff8a80}
+.card{background:#2a1215;border:1px solid #da171044}
+.amount{color:#fff}
+.bank-bar{height:4px;background:linear-gradient(90deg,#da1710,#ff5a52)}
+.logo{font-weight:800;letter-spacing:1px;font-size:14px;color:#ff8a80;margin-bottom:8px}
+`;
 
   const body = `
-<style>
-  .wp-root{min-height:100vh;background:#f5f5f5;color:#1a1a1a;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));background:#d5002b;color:#fff;font-size:16px;font-weight:500}
-  .nav a,.nav button{background:none;border:none;color:#fff;font-size:16px;cursor:pointer}
-  .hero{background:#fff;text-align:center;padding:32px 20px 24px}
-  .check{width:56px;height:56px;border-radius:50%;background:#00875a;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px}
-  .paid{font-size:20px;font-weight:600}
-  .sub{margin-top:6px;font-size:14px;color:#555}
-  .card{margin:16px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden}
-  .row{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #eee;font-size:14px}
-  .row:last-child{border-bottom:none}
-  .label{color:#666}
-  .value{font-weight:500;text-align:right}
-  .foot{margin:16px 20px;font-size:12px;color:#666;text-align:center;line-height:1.4}
-  .osko{text-align:center;margin:8px 0 24px;font-size:13px;color:#555}
-</style>
-<div class="wp-root">
-  <header class="nav">
-    <a href="javascript:history.back()">Close</a>
-    <span>Receipt</span>
-    <button type="button" onclick="navigator.share?navigator.share({title:'Receipt',url:location.href}):0">Share</button>
-  </header>
-  <div class="hero">
-    <div class="check">✓</div>
-    <div class="paid">Paid $${escapeHtml(amount)} to ${escapeHtml(data.target_name)}</div>
+<div class="wrap">
+  <div class="bank-bar"></div>
+  ${closeNav({ title: 'Payment', accent: '#ff8a80' })}
+  <section class="hero">
+    <div class="logo">WESTPAC</div>
+    <div class="status-pill">Internal record</div>
+    <div class="amount">$${d.amount}</div>
+    <div class="recipient">Paid to ${d.target_name}</div>
     ${phoneBlock}
-  </div>
-  <div class="card">
-    <div class="row"><span class="label">Receipt no.</span><span class="value">${escapeHtml(data.id)}</span></div>
-    <div class="row"><span class="label">From</span><span class="value">${escapeHtml(data.sender_name)}</span></div>
-    <div class="row"><span class="label">Description</span><span class="value">${escapeHtml(data.description || 'Goods')}</span></div>
-    <div class="row"><span class="label">Transaction Date</span><span class="value">${escapeHtml(when)}</span></div>
-  </div>
-  <p class="foot">This payment may take up to 24 hours to appear in your transaction history.</p>
-  <div class="osko">Sent through Osko</div>
+  </section>
+  <section class="card">
+    ${row('From', d.sender_name)}
+    ${row('Description', d.description)}
+    ${row('Date', d.created_at)}
+    ${row('Reference', d.id)}
+  </section>
+  <p class="foot">Internal application record — not a Westpac bank confirmation.</p>
 </div>`;
 
-  return baseShell({ title: `Westpac Receipt ${data.id}`, bodyHtml: body });
+  return documentShell({
+    title: `Westpac receipt ${d.id}`,
+    themeColor: '#da1710',
+    styles,
+    bodyHtml: body,
+  });
 }

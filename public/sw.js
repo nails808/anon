@@ -1,7 +1,8 @@
-const CACHE = 'anon-shell-v4';
+// Do not pin the app shell HTML indefinitely: Vite fingerprints each JS bundle,
+// so a stale cached index.html can reference a bundle that no longer exists
+// after a deployment and leave the PWA blank.
+const CACHE = 'anon-shell-v5';
 const ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/shield.svg',
   '/icons/commbank.png',
@@ -36,6 +37,25 @@ self.addEventListener('fetch', (event) => {
   ) {
     return;
   }
+
+  // Always prefer the current deployment's document. Retain the most recent
+  // document only as an offline fallback; its matching hashed assets are
+  // cached by the normal asset path below.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && url.origin === self.location.origin) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE).then((cache) => cache.put('/index.html', copy)));
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match('/index.html')) || (await caches.match('/')))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(
       (cached) =>
@@ -48,7 +68,7 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
           })
-          .catch(() => caches.match('/'))
+          .catch(() => cached)
     )
   );
 });

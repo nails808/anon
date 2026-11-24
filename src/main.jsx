@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import {
   Shield, ShieldCheck, Fingerprint, Globe2, MapPin, Smartphone,
   Power, LockKeyhole, RefreshCw, Share, Download,
-  PlusSquare, MoreVertical, BellRing, LogOut, Mail, KeyRound
+  PlusSquare, MoreVertical, BellRing, LogOut, Mail, KeyRound, Eye, EyeOff, Loader2
 } from 'lucide-react';
 import './style.css';
 
@@ -107,50 +107,70 @@ function AuthScreen({ onAuthenticated }) {
   const [email, setEmail] = useState(() => localStorage.getItem(REMEMBER_KEY) || '');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [remember, setRemember] = useState(() => Boolean(localStorage.getItem(REMEMBER_KEY)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const switchMode = (next) => {
     setMode(next);
     setError('');
-    setSuccess('');
+    setFieldErrors({});
     setPassword('');
     setPasswordConfirm('');
+    setShowPassword(false);
+    setShowConfirm(false);
+  };
+
+  const validate = () => {
+    const next = {};
+    const trimmed = email.trim();
+    if (!trimmed) next.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) next.email = 'Enter a valid email address';
+
+    if (!password) next.password = 'Password is required';
+    else if (mode === 'register' && password.length < 8) next.password = 'Use at least 8 characters';
+
+    if (mode === 'register') {
+      if (!passwordConfirm) next.passwordConfirm = 'Confirm your password';
+      else if (password !== passwordConfirm) next.passwordConfirm = 'Passwords do not match';
+    }
+
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const friendlyError = (err) => {
+    const msg = (err?.message || '').toLowerCase();
+    if (err?.status === 429) return 'Too many attempts. Please wait a few minutes and try again.';
+    if (msg.includes('already exists')) return 'That email is already registered. Try logging in instead.';
+    if (msg.includes('invalid email or password')) return 'Email or password is incorrect.';
+    if (msg.includes('not available')) return 'This account is not available. Contact support if you need help.';
+    if (msg.includes('network') || msg.includes('failed to fetch')) return 'Could not reach the server. Check your connection.';
+    return err?.message || 'Something went wrong. Please try again.';
   };
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
-
-    if (mode === 'register') {
-      if (password.length < 8) {
-        setError('Password must be at least 8 characters');
-        return;
-      }
-      if (password !== passwordConfirm) {
-        setError('Passwords do not match');
-        return;
-      }
-    }
+    if (!validate()) return;
 
     setBusy(true);
     try {
       const path = mode === 'login' ? '/api/login' : '/api/register';
       const body =
         mode === 'login'
-          ? { email, password, remember }
-          : { email, password, passwordConfirm, remember };
+          ? { email: email.trim(), password, remember }
+          : { email: email.trim(), password, passwordConfirm, remember };
       const data = await api(path, { method: 'POST', body });
       storeToken(data.token, remember);
       if (remember) localStorage.setItem(REMEMBER_KEY, email.trim().toLowerCase());
       else localStorage.removeItem(REMEMBER_KEY);
-      setSuccess(mode === 'login' ? 'Signed in' : 'Account created');
       onAuthenticated(data.user);
     } catch (err) {
-      setError(err.message || 'Something went wrong');
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -169,7 +189,16 @@ function AuthScreen({ onAuthenticated }) {
         <div className="protected-pill"><ShieldCheck size={18}/><span>PROTECTED BY ANON</span></div>
       </section>
 
-      <section className="auth-card">
+      <section className="auth-card" aria-labelledby="auth-heading">
+        <h1 id="auth-heading" className="auth-heading">
+          {mode === 'login' ? 'Welcome back' : 'Create your account'}
+        </h1>
+        <p className="auth-sub">
+          {mode === 'login'
+            ? 'Sign in with the email you registered.'
+            : 'Your email becomes your username.'}
+        </p>
+
         <div className="auth-tabs" role="tablist">
           <button
             type="button"
@@ -194,7 +223,7 @@ function AuthScreen({ onAuthenticated }) {
         </div>
 
         <form className="auth-form" onSubmit={submit} noValidate>
-          <label className="auth-field">
+          <label className={'auth-field' + (fieldErrors.email ? ' has-error' : '')}>
             <span><Mail size={14}/> Email</span>
             <input
               type="email"
@@ -203,43 +232,82 @@ function AuthScreen({ onAuthenticated }) {
               inputMode="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((f) => ({ ...f, email: undefined }));
+              }}
               placeholder="you@example.com"
               disabled={busy}
               autoCapitalize="none"
               autoCorrect="off"
+              aria-invalid={Boolean(fieldErrors.email)}
             />
+            {fieldErrors.email && <em className="field-error">{fieldErrors.email}</em>}
           </label>
 
-          <label className="auth-field">
+          <label className={'auth-field' + (fieldErrors.password ? ' has-error' : '')}>
             <span><KeyRound size={14}/> Password</span>
-            <input
-              type="password"
-              name="password"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-              minLength={mode === 'register' ? 8 : 1}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'register' ? 'At least 8 characters' : 'Your password'}
-              disabled={busy}
-            />
+            <div className="password-wrap">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                required
+                minLength={mode === 'register' ? 8 : 1}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((f) => ({ ...f, password: undefined }));
+                }}
+                placeholder={mode === 'register' ? 'At least 8 characters' : 'Your password'}
+                disabled={busy}
+                aria-invalid={Boolean(fieldErrors.password)}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+                disabled={busy}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {fieldErrors.password && <em className="field-error">{fieldErrors.password}</em>}
           </label>
 
           {mode === 'register' && (
-            <label className="auth-field">
+            <label className={'auth-field' + (fieldErrors.passwordConfirm ? ' has-error' : '')}>
               <span><KeyRound size={14}/> Confirm password</span>
-              <input
-                type="password"
-                name="passwordConfirm"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                placeholder="Repeat password"
-                disabled={busy}
-              />
+              <div className="password-wrap">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  name="passwordConfirm"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={passwordConfirm}
+                  onChange={(e) => {
+                    setPasswordConfirm(e.target.value);
+                    if (fieldErrors.passwordConfirm) setFieldErrors((f) => ({ ...f, passwordConfirm: undefined }));
+                  }}
+                  placeholder="Repeat password"
+                  disabled={busy}
+                  aria-invalid={Boolean(fieldErrors.passwordConfirm)}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                  disabled={busy}
+                >
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {fieldErrors.passwordConfirm && <em className="field-error">{fieldErrors.passwordConfirm}</em>}
             </label>
           )}
 
@@ -250,21 +318,41 @@ function AuthScreen({ onAuthenticated }) {
               onChange={(e) => setRemember(e.target.checked)}
               disabled={busy}
             />
-            <span>Remember me</span>
+            <span>Remember me on this device</span>
           </label>
 
           {error && <div className="auth-error" role="alert">{error}</div>}
-          {success && <div className="auth-success" role="status">{success}</div>}
 
           <button type="submit" className="auth-submit" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
+            {busy ? (
+              <>
+                <Loader2 size={18} className="spin" />
+                {mode === 'login' ? 'Signing in…' : 'Creating account…'}
+              </>
+            ) : mode === 'login' ? (
+              'Log in'
+            ) : (
+              'Create account'
+            )}
           </button>
         </form>
 
-        <p className="auth-hint">
-          {mode === 'login'
-            ? 'Your email is your username. Sessions last 1 day, or 30 days with Remember me.'
-            : 'Each email can only register once. It becomes your username.'}
+        <p className="auth-switch">
+          {mode === 'login' ? (
+            <>
+              New here?{' '}
+              <button type="button" className="auth-link" onClick={() => switchMode('register')} disabled={busy}>
+                Create an account
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button type="button" className="auth-link" onClick={() => switchMode('login')} disabled={busy}>
+                Log in
+              </button>
+            </>
+          )}
         </p>
       </section>
     </main>
@@ -431,6 +519,15 @@ function App() {
 
   useEffect(() => {
     checkSession();
+  }, [checkSession]);
+
+  // Re-validate when returning to the app (expired sessions → login)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') checkSession();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, [checkSession]);
 
   if (!standalone) return <InstallScreen />;

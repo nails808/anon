@@ -50,7 +50,6 @@ export function render(raw) {
     <div class="section"><p class="label">Transaction date</p><p class="value">${d.created_at}</p></div>
     <p class="notice">For security, payments to recently added payees may be held for 24 hours.</p>
     <p class="osko">Sent through Osko</p>
-    <p class="foot">Internal application record only. Not an Up bank confirmation. Does not prove funds have cleared.</p>
   </div>
 </div>`;
 

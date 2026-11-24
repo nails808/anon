@@ -5,11 +5,11 @@ compatibility_date = "2026-11-23"
 [[d1_databases]]
 binding = "DB"
 database_name = "anon-push"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "c3cb14b7-51bb-4f93-8066-05864281ae1c"
 migrations_dir = "migrations"
 
 [vars]
 # Exact HTTPS origin of the PWA (CORS). Example: https://anon.example.com
 APP_ORIGIN = "https://REPLACE_WITH_YOUR_DOMAIN"
 # Public base URL of this Worker (used in receipt links in push notifications)
-WORKER_PUBLIC_URL = "https://anon-push-api.REPLACE.workers.dev"
+WORKER_PUBLIC_URL = "https://anon-push-api.bittermusic.workers.dev"

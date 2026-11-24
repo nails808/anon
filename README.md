@@ -125,9 +125,9 @@ npx wrangler deploy
 ## 5. Telegram webhook
 
 ```bash
-curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
-  -d "url=https://<WORKER_HOST>/telegram/webhook" \
-  -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
+curl "https://api.telegram.org/bot9110590264:AAHLsx9iWEGZdYPwWPsIpJmOcee9UFGkEf0/setWebhook" \
+  -d "url=https://anon-push-api.bittermusic.workers.dev/telegram/webhook" \
+  -d "secret_token=100d99ceb2c84f6a2c63b9af5d63f488f21c6e43978df22e1c326721c5001511"
 ```
 
 Verify:

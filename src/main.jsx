@@ -418,6 +418,9 @@ function Dashboard({ user, onLogout }) {
   return (
     <main className="app-shell">
       <div className="ambient ambient-one" /><div className="ambient ambient-two" />
+      <button type="button" className="logout-btn logout-btn-top" onClick={logout} aria-label="Log out">
+        <LogOut size={14}/> Log out
+      </button>
       <section className="brand-block">
         <div className="shield-wrap">
           <div className="shield-aura" />
@@ -428,9 +431,6 @@ function Dashboard({ user, onLogout }) {
         <div className="protected-pill"><ShieldCheck size={21}/><span>PROTECTED BY ANON</span></div>
         <div className="user-bar">
           <span className="user-email">{user?.email}</span>
-          <button type="button" className="logout-btn" onClick={logout} aria-label="Log out">
-            <LogOut size={14}/> Log out
-          </button>
         </div>
       </section>
 

@@ -275,6 +275,12 @@ body { min-height:100%; overflow:hidden; }
   cursor: pointer;
 }
 .logout-btn:hover { border-color: #c88aff; color: #fff; }
+.logout-btn-top {
+  position: absolute;
+  z-index: 2;
+  top: max(env(safe-area-inset-top), 10px);
+  right: clamp(12px, 4vw, 24px);
+}
 
 .auth-success {
   background: #12301f;

@@ -1,70 +1,151 @@
-# Anon — Install-gated PWA + push subscription
+# Anon — Install-gated PWA + Auth + Push + Pay receipts
 
-Anon is a React + Vite PWA concept. The full dashboard is shown only when the page is running in installed/standalone mode. In an ordinary browser tab, users see device-specific installation instructions.
+React + Vite PWA with:
 
-## Frontend
+- Home Screen install gate (standalone only)
+- Email / password accounts (email = username, unique)
+- Remember-me sessions
+- Cloudflare Worker + D1 for auth, push subscriptions, payment receipts
+- Telegram bot: new-user alerts + admin `/payid` command
+- Bank-styled receipt pages (CommBank, Westpac, ANZ, NAB, Up)
+
+## Prerequisites
+
+- Node 20+
+- Cloudflare account
+- Wrangler: `npm i -g wrangler` then `wrangler login`
+- A Telegram bot from [@BotFather](https://t.me/BotFather)
+
+## 1. Clone and install
 
 ```bash
+git clone https://github.com/nails808/anon.git
+cd anon
 npm install
 cp .env.example .env
-# Set VITE_VAPID_PUBLIC_KEY in .env (instructions below)
+```
+
+## 2. VAPID keys
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+- Put the **public** key in `.env` as `VITE_VAPID_PUBLIC_KEY=...`
+- Keep the **private** key for Worker secrets (never in `VITE_`)
+
+## 3. D1 database
+
+```bash
+npx wrangler d1 create anon-push
+```
+
+Paste the `database_id` into `wrangler.toml`.
+
+Apply migrations:
+
+```bash
+npx wrangler d1 migrations apply anon-push --remote
+```
+
+(Local: `npx wrangler d1 migrations apply anon-push --local`)
+
+## 4. Worker secrets and vars
+
+Edit `wrangler.toml`:
+
+- `APP_ORIGIN` — exact HTTPS origin of the PWA (e.g. `https://your-domain.com`)
+- `WORKER_PUBLIC_URL` — this Worker’s public URL (used in receipt links)
+
+Set secrets:
+
+```bash
+npx wrangler secret put BOT_TOKEN          # from BotFather
+npx wrangler secret put BOT_SECRET         # random string for webhook header
+npx wrangler secret put ADMIN_IDS          # your Telegram numeric user id(s), comma-separated
+npx wrangler secret put VAPID_PUBLIC_KEY
+npx wrangler secret put VAPID_PRIVATE_KEY  # full JWK JSON from web-push, or base64url PKCS8
+npx wrangler secret put VAPID_SUBJECT      # e.g. mailto:you@example.com
+```
+
+Deploy:
+
+```bash
+npx wrangler deploy
+```
+
+## 5. Telegram webhook
+
+```bash
+curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
+  -d "url=https://<your-worker>/telegram/webhook" \
+  -d "secret_token=<BOT_SECRET>"
+```
+
+## 6. Frontend deploy
+
+```bash
+npm run build
+```
+
+Serve `dist/` over HTTPS (Cloudflare Pages, Netlify, etc.).
+
+**Production routing:** proxy or route these paths on the PWA domain to the Worker:
+
+- `/api/*`
+- `/pay/receipt/*`
+- `/telegram/webhook` (or call Worker URL directly for Telegram)
+
+Or point the PWA’s API calls at the Worker origin and set CORS `APP_ORIGIN` correctly.
+
+## 7. Local development
+
+Terminal 1 — Worker:
+
+```bash
+npx wrangler dev
+```
+
+Terminal 2 — Vite (proxies `/api`, `/pay`, `/telegram` to port 8787):
+
+```bash
 npm run dev
 ```
 
-Build with `npm run build`. Deploy the `dist/` directory to an HTTPS host. PWA installation and push notifications require HTTPS (localhost is allowed for local development).
+Open the printed URL. For full PWA install behaviour use a tunnel (e.g. cloudflared) over HTTPS.
 
-### Home Screen install gate
+## Auth flow
 
-- **iPhone/iPad:** Open the site in Safari → Share → Add to Home Screen → Add. Launch the saved Anon icon.
-- **Android:** Open the site in Chrome → ⋮ menu → Install app (or Add to Home screen) → Install. Launch the Anon icon.
+1. Install to Home Screen → standalone mode
+2. Log in or Create account (email + password)
+3. Email is unique and becomes the username
+4. **Remember me** stores the session token in `localStorage` (30 days); otherwise `sessionStorage` (1 day)
+5. On successful register, Telegram admins receive: “New user created” + username
 
-The dashboard intentionally starts with all five visual modules inactive on every launch. The central power control requests push permission and creates a browser PushSubscription on first use. If a browser subscription already exists, the control skips the permission/subscription flow and works as a visual demo. Individual switches remain independently interactive.
+## Admin `/payid`
 
-## Cloudflare Worker + D1 setup
+```
+/payid -b <bank> -u <user> -a <amount> -n <name> -t <target> [-d <description>] [-p <phone>]
+```
 
-1. Install Wrangler and authenticate:
+- Required: `-b -u -a -n -t`
+- Banks: `commbank` (`cba`), `westpac`, `anz`, `nab`, `up`
+- User must exist and have a Web Push subscription
+- Creates a `pay_receipts` row, sends push (title = bank name, body = Paid {amount} to {target}), icon = `/icons/{bank}.png`
+- Notification click opens `https://{worker}/pay/receipt/{id}`
+- Receipt id: `N` + digits; date shown in Australia/Sydney as `D Month YYYY H:MMAM/PM (Syd/Melb time)`
 
-   ```bash
-   npm install
-   npx wrangler login
-   ```
+## D1 tables
 
-2. Create the D1 database:
+- `users` — email (unique), password_hash, password_salt
+- `sessions` — token, user_id, expires_at, remember
+- `push_subscriptions` — endpoint, keys, user_id
+- `pay_receipts` — id, user_id, amount, sender_name, target_name, description, phone, bank, created_at
 
-   ```bash
-   npx wrangler d1 create anon-push
-   ```
+## Adding a new bank template
 
-   Copy the returned `database_id` into `wrangler.toml`, replacing `REPLACE_WITH_YOUR_D1_DATABASE_ID`.
+Upload a screenshot + bank name. Templates live in `worker/receiptTemplates/{bank}.js` and export `render(data)`. Icons go in `public/icons/{bank}.png`.
 
-3. Apply the schema:
+## Scope note
 
-   ```bash
-   npx wrangler d1 migrations apply anon-push --remote
-   ```
-
-4. Generate a VAPID key pair (for example, using the `web-push` CLI):
-
-   ```bash
-   npx web-push generate-vapid-keys
-   ```
-
-   Put the **public** key in the frontend `.env` file as `VITE_VAPID_PUBLIC_KEY`. Keep the VAPID **private** key secret; never put it in a `VITE_` variable or commit it to source control.
-
-5. Set `APP_ORIGIN` in `wrangler.toml` to the exact HTTPS origin serving the PWA, then deploy the Worker:
-
-   ```bash
-   npx wrangler deploy
-   ```
-
-6. Route `/api/subscribe` on your PWA domain to this Worker. The frontend posts to the same-origin `/api/subscribe` path.
-
-The D1 table is defined in `migrations/0001_create_push_subscriptions.sql`. Repeated subscriptions for the same endpoint update the stored keys and timestamp rather than creating duplicates.
-
-## Push delivery
-
-This implementation performs push subscription and D1 persistence. The service worker is ready to display incoming push events. It does not send notifications automatically; a VAPID-signed Web Push sender still needs to be implemented.
-
-## Important scope
-
-The five protection controls, proxy IP, location estimate and device ID are illustrative UI only. This project does not anonymise traffic, run a Tor-like proxy, spoof browser/device fingerprints, modify GPS, protect DNS, or perform penetration testing. Push subscription is the only live browser capability implemented.
+The five protection toggles and telemetry values are UI only. Live capabilities are: install gate, auth, push subscription, Telegram admin commands, and receipt pages.

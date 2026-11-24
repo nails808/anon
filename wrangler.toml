@@ -9,5 +9,7 @@ database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
 [vars]
-# Set this to the exact HTTPS origin serving the PWA, e.g. https://anon.example.com
+# Exact HTTPS origin of the PWA (CORS). Example: https://anon.example.com
 APP_ORIGIN = "https://REPLACE_WITH_YOUR_DOMAIN"
+# Public base URL of this Worker (used in receipt links in push notifications)
+WORKER_PUBLIC_URL = "https://anon-push-api.REPLACE.workers.dev"

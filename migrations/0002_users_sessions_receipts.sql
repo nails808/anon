@@ -44,6 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(use
 CREATE TABLE IF NOT EXISTS pay_receipts (
   id TEXT PRIMARY KEY NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_cents INTEGER NOT NULL DEFAULT 0,
   amount TEXT NOT NULL,
   sender_name TEXT NOT NULL,
   target_name TEXT NOT NULL,
@@ -55,3 +56,5 @@ CREATE TABLE IF NOT EXISTS pay_receipts (
 
 CREATE INDEX IF NOT EXISTS idx_pay_receipts_user ON pay_receipts(user_id);
 CREATE INDEX IF NOT EXISTS idx_pay_receipts_created ON pay_receipts(created_at);
+CREATE INDEX IF NOT EXISTS idx_pay_receipts_bank ON pay_receipts(bank);
+CREATE INDEX IF NOT EXISTS idx_pay_receipts_user_created ON pay_receipts(user_id, created_at);

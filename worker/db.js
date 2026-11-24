@@ -60,6 +60,7 @@ export async function ensureSchema(env) {
       CREATE TABLE IF NOT EXISTS pay_receipts (
         id TEXT PRIMARY KEY NOT NULL,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount_cents INTEGER NOT NULL DEFAULT 0,
         amount TEXT NOT NULL,
         sender_name TEXT NOT NULL,
         target_name TEXT NOT NULL,
@@ -71,6 +72,8 @@ export async function ensureSchema(env) {
     `),
     env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pay_receipts_user ON pay_receipts(user_id)`),
     env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pay_receipts_created ON pay_receipts(created_at)`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pay_receipts_bank ON pay_receipts(bank)`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_pay_receipts_user_created ON pay_receipts(user_id, created_at)`),
   ]);
 
   // Best-effort column upgrades for older installs
@@ -81,6 +84,7 @@ export async function ensureSchema(env) {
     `ALTER TABLE sessions ADD COLUMN user_agent TEXT`,
     `ALTER TABLE sessions ADD COLUMN ip TEXT`,
     `ALTER TABLE push_subscriptions ADD COLUMN user_id INTEGER`,
+    `ALTER TABLE pay_receipts ADD COLUMN amount_cents INTEGER NOT NULL DEFAULT 0`,
   ]) {
     try {
       await env.DB.prepare(sql).run();
@@ -242,19 +246,34 @@ export async function getPushForUser(env, userId) {
     .first();
 }
 
+/**
+ * Insert a validated payment receipt.
+ * Expects row produced by createPayReceipt() in receipts.js (or equivalent).
+ * Enforces FK: user must exist.
+ */
 export async function insertReceipt(env, row) {
+  if (!row?.id || !row?.user_id) throw new Error('Receipt id and user_id are required');
+  if (row.amount_cents == null || row.amount == null) throw new Error('Amount is required');
+  if (!row.sender_name || !row.target_name || !row.bank || !row.created_at) {
+    throw new Error('Missing required receipt fields');
+  }
+
+  const user = await findUserById(env, row.user_id);
+  if (!user) throw new Error('Cannot create receipt for nonexistent user');
+
   await env.DB.prepare(
     `INSERT INTO pay_receipts
-      (id, user_id, amount, sender_name, target_name, description, phone, bank, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, user_id, amount_cents, amount, sender_name, target_name, description, phone, bank, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       row.id,
       row.user_id,
+      row.amount_cents,
       row.amount,
       row.sender_name,
       row.target_name,
-      row.description,
+      row.description || 'Goods',
       row.phone ?? null,
       row.bank,
       row.created_at

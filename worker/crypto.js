@@ -62,8 +62,13 @@ export async function verifyPassword(password, storedHashB64, storedSaltB64) {
   return candidate === storedHashB64;
 }
 
-/** Generate sequential-looking receipt ids: N + digits */
+/**
+ * Unique receipt id: N followed by digits only.
+ * Combines time + random so concurrent inserts do not collide.
+ */
 export function makeReceiptId() {
-  const n = Date.now().toString().slice(-10) + String(Math.floor(Math.random() * 1000)).padStart(3, '0');
-  return `N${n}`;
+  const time = Date.now().toString();
+  const rand = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
+  const digits = `${time}${String(rand).padStart(6, '0')}`;
+  return `N${digits}`;
 }

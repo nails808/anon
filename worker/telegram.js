@@ -8,15 +8,14 @@
  */
 import {
   ensureSchema,
-  findUserByEmail,
   getPushForUser,
-  insertReceipt,
   getUserStats,
   getUserDetail,
 } from './db.js';
-import { makeReceiptId } from './crypto.js';
 import { sendWebPush } from './push.js';
 import { json } from './http.js';
+import { createPayReceipt } from './receipts.js';
+import { resolveBank, BANK_KEYS } from './banks.js';
 
 /* ── env helpers ───────────────────────────────────────── */
 
@@ -152,23 +151,7 @@ function formatDate(raw) {
   }
 }
 
-/* ── banks (payid) ─────────────────────────────────────── */
-
-const BANKS = {
-  commbank: { key: 'commbank', display: 'CommBank', aliases: ['cba', 'commbank', 'commonwealth'] },
-  westpac: { key: 'westpac', display: 'Westpac', aliases: ['westpac', 'wbc'] },
-  anz: { key: 'anz', display: 'ANZ', aliases: ['anz'] },
-  nab: { key: 'nab', display: 'NAB', aliases: ['nab'] },
-  up: { key: 'up', display: 'Up', aliases: ['up'] },
-};
-
-function resolveBank(raw) {
-  const v = String(raw || '').trim().toLowerCase();
-  for (const bank of Object.values(BANKS)) {
-    if (bank.aliases.includes(v) || bank.key === v) return bank;
-  }
-  return null;
-}
+/* banks imported from ./banks.js */
 
 const PAYID_USAGE =
   `<code>/payid -b &lt;bank&gt; -u &lt;user&gt; -a &lt;amount&gt; -n &lt;name&gt; -t &lt;target&gt; [-d &lt;description&gt;] [-p &lt;phone&gt;]</code>\n` +
@@ -381,7 +364,10 @@ registerCommand('/user', {
 registerCommand('/payid', {
   admin: true,
   description: 'Create a payment receipt and send Web Push',
-  usage: PAYID_USAGE,
+  usage:
+    '<code>/payid -b &lt;bank&gt; -u &lt;user&gt; -a &lt;amount&gt; -n &lt;name&gt; -t &lt;target&gt; [-d &lt;description&gt;] [-p &lt;phone&gt;]</code>\n' +
+    `Banks: ${BANK_KEYS.join(', ')} (cba → commbank)\n` +
+    'Required: -b -u -a -n -t · Optional: -d (default Goods), -p',
   async handler(ctx) {
     const flags = ctx.flags;
     const missing = [];
@@ -395,91 +381,58 @@ registerCommand('/payid', {
       await telegramSend(
         ctx.env,
         ctx.chatId,
-        `❌ Missing required flags: ${missing.join(', ')}\n\n${PAYID_USAGE}`
+        `❌ Missing required flags: ${missing.join(', ')}\n\n` +
+          `<code>/payid -b bank -u email -a amount -n name -t target</code>`
       );
       logAdmin('payid_invalid', { fromId: ctx.fromId, missing });
       return;
     }
 
-    if (!isValidEmail(flags.u)) {
-      await telegramSend(
-        ctx.env,
-        ctx.chatId,
-        `❌ Invalid user email: <code>${escapeHtml(flags.u)}</code>`
-      );
+    let created;
+    try {
+      created = await createPayReceipt(ctx.env, {
+        userEmail: flags.u,
+        amount: flags.a,
+        senderName: flags.n,
+        targetName: flags.t,
+        description: flags.d,
+        phone: flags.p,
+        bank: flags.b,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not create receipt';
+      await telegramSend(ctx.env, ctx.chatId, `❌ ${escapeHtml(msg)}`);
+      logAdmin('payid_error', { fromId: ctx.fromId, error: msg });
       return;
     }
 
-    const bank = resolveBank(flags.b);
-    if (!bank) {
-      await telegramSend(
-        ctx.env,
-        ctx.chatId,
-        `❌ Unknown bank <code>${escapeHtml(flags.b)}</code>.\nAllowed: commbank, westpac, anz, nab, up\n\n${PAYID_USAGE}`
-      );
-      logAdmin('payid_bad_bank', { fromId: ctx.fromId, bank: flags.b });
-      return;
-    }
-
-    const user = await findUserByEmail(ctx.env, flags.u);
-    if (!user) {
-      await telegramSend(
-        ctx.env,
-        ctx.chatId,
-        `❌ No app user found for <code>${escapeHtml(flags.u)}</code>.`
-      );
-      logAdmin('payid_user_missing', { fromId: ctx.fromId, email: flags.u });
-      return;
-    }
-
+    const { receipt, bank, user } = created;
     const sub = await getPushForUser(ctx.env, user.id);
     if (!sub) {
       await telegramSend(
         ctx.env,
         ctx.chatId,
-        `❌ User <code>${escapeHtml(user.email)}</code> has no Web Push subscription.`
+        `⚠️ Receipt <code>${escapeHtml(receipt.id)}</code> saved, but user <code>${escapeHtml(user.email)}</code> has no Web Push subscription.`
       );
-      logAdmin('payid_no_push', { fromId: ctx.fromId, userId: user.id });
+      logAdmin('payid_no_push', { fromId: ctx.fromId, userId: user.id, receiptId: receipt.id });
       return;
     }
 
-    const amount = flags.a.replace(/^\$/, '').trim();
-    const description = (flags.d || 'Goods').trim() || 'Goods';
-    const phone = flags.p ? flags.p.trim() : null;
-    const receiptId = makeReceiptId();
-    const createdAt = new Date().toISOString();
-
-    await insertReceipt(ctx.env, {
-      id: receiptId,
-      user_id: user.id,
-      amount,
-      sender_name: flags.n.trim(),
-      target_name: flags.t.trim(),
-      description,
-      phone,
-      bank: bank.key,
-      created_at: createdAt,
-    });
-
-    const workerOrigin = String(ctx.env.WORKER_PUBLIC_URL || ctx.env.APP_ORIGIN || '').replace(
-      /\/$/,
-      ''
-    );
+    const workerOrigin = String(ctx.env.WORKER_PUBLIC_URL || ctx.env.APP_ORIGIN || '').replace(/\/$/, '');
     const receiptUrl = workerOrigin
-      ? `${workerOrigin}/pay/receipt/${receiptId}`
-      : `/pay/receipt/${receiptId}`;
+      ? `${workerOrigin}/pay/receipt/${receipt.id}`
+      : `/pay/receipt/${receipt.id}`;
 
-    let body = `Paid $${amount} to ${flags.t.trim()}`;
-    if (phone) body += `\n${phone}`;
+    let body = `Paid $${receipt.amount} to ${receipt.target_name}`;
+    if (receipt.phone) body += `\n${receipt.phone}`;
 
-    const iconPath = `/icons/${bank.key}.png`;
     const pushResult = await sendWebPush(ctx.env, sub, {
       title: bank.display,
       body,
-      icon: iconPath,
-      badge: iconPath,
+      icon: bank.icon,
+      badge: bank.icon,
       url: receiptUrl,
-      data: { url: receiptUrl, receiptId },
+      data: { url: receiptUrl, receiptId: receipt.id },
     });
 
     const statusLine = pushResult.ok
@@ -488,10 +441,10 @@ registerCommand('/payid', {
 
     logAdmin('payid_ok', {
       fromId: ctx.fromId,
-      receiptId,
+      receiptId: receipt.id,
       userId: user.id,
       bank: bank.key,
-      amount,
+      amount_cents: receipt.amount_cents,
       pushOk: Boolean(pushResult.ok),
     });
 
@@ -499,15 +452,16 @@ registerCommand('/payid', {
       ctx.env,
       ctx.chatId,
       `${statusLine}\n` +
-        `Receipt: <code>${receiptId}</code>\n` +
+        `Receipt: <code>${receipt.id}</code>\n` +
         `User: <code>${escapeHtml(user.email)}</code>\n` +
         `Bank: ${bank.display}\n` +
-        `Amount: $${escapeHtml(amount)}\n` +
-        `To: ${escapeHtml(flags.t)}\n` +
+        `Amount: $${escapeHtml(receipt.amount)}\n` +
+        `To: ${escapeHtml(receipt.target_name)}\n` +
         `Link: ${receiptUrl}`
     );
   },
 });
+
 
 /* ── webhook entry ─────────────────────────────────────── */
 

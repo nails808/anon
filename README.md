@@ -1,22 +1,34 @@
-# Anon — Install-gated PWA + Auth + Push + Pay receipts
+# Anon — Install-gated privacy PWA
 
-React + Vite PWA with:
+Progressive Web App with email/password auth, Cloudflare Worker + D1 backend, Telegram admin bot, Web Push, and bank-themed internal payment records.
 
-- Home Screen install gate (standalone only)
-- Email / password accounts (email = username, unique)
-- Remember-me sessions
-- Cloudflare Worker + D1 for auth, push subscriptions, payment receipts
-- Telegram bot: new-user alerts + admin `/payid` command
-- Bank-styled receipt pages (CommBank, Westpac, ANZ, NAB, Up)
+**Internal records only.** Receipts and push notifications are application records — not bank confirmations and not proof of cleared funds.
 
-## Prerequisites
+## Stack
 
-- Node 20+
+- Frontend: Vite 6 + React 18 (JSX), lucide-react, service worker PWA
+- Backend: Cloudflare Workers + D1
+- Admin: Telegram Bot webhook on the same Worker
+
+## Features
+
+- Install gate (standalone / Home Screen)
+- Register / login (unique email, PBKDF2 passwords, Remember me sessions)
+- Telegram admin: `/start` `/help` `/whoami` `/status` `/users` `/user` `/payid`
+- New-user Telegram alerts
+- Web Push subscriptions bound to authenticated users
+- `/payid` → D1 `pay_receipts` + push + HTML receipt pages
+- Bank templates: CommBank, Westpac, ANZ, NAB, Up
+
+---
+
+## 1. Prerequisites
+
+- Node.js 20+
 - Cloudflare account
 - Wrangler: `npm i -g wrangler` then `wrangler login`
-- A Telegram bot from [@BotFather](https://t.me/BotFather)
-
-## 1. Clone and install
+- Telegram bot from [@BotFather](https://t.me/BotFather)
+- Your Telegram numeric user id (message [@userinfobot](https://t.me/userinfobot) or use `/whoami` after webhook is live)
 
 ```bash
 git clone https://github.com/nails808/anon.git
@@ -25,22 +37,39 @@ npm install
 cp .env.example .env
 ```
 
-## 2. VAPID keys
+---
+
+## 2. VAPID keys (Web Push)
 
 ```bash
 npx web-push generate-vapid-keys
 ```
 
-- Put the **public** key in `.env` as `VITE_VAPID_PUBLIC_KEY=...`
-- Keep the **private** key for Worker secrets (never in `VITE_`)
+Put the **public** key in `.env`:
 
-## 3. D1 database
+```env
+VITE_VAPID_PUBLIC_KEY=BGxxxx...
+```
+
+Keep the **private** key for Worker secrets only (never `VITE_`).
+
+---
+
+## 3. Cloudflare D1
 
 ```bash
 npx wrangler d1 create anon-push
 ```
 
-Paste the `database_id` into `wrangler.toml`.
+Copy the returned `database_id` into `wrangler.toml`:
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "anon-push"
+database_id = "YOUR_DATABASE_ID"
+migrations_dir = "migrations"
+```
 
 Apply migrations:
 
@@ -48,27 +77,42 @@ Apply migrations:
 npx wrangler d1 migrations apply anon-push --remote
 ```
 
-(Local: `npx wrangler d1 migrations apply anon-push --local`)
+Migrations:
 
-## 4. Worker secrets and vars
+| File | Purpose |
+|------|---------|
+| `0001_create_push_subscriptions.sql` | Push endpoints |
+| `0002_users_sessions_receipts.sql` | users, sessions, login_attempts, pay_receipts |
+| `0003_pay_receipts.sql` | amount_cents + indexes |
 
-Edit `wrangler.toml`:
+`ensureSchema()` also creates/upgrades tables at runtime.
 
-- `APP_ORIGIN` — exact HTTPS origin of the PWA (e.g. `https://your-domain.com`)
-- `WORKER_PUBLIC_URL` — this Worker’s public URL (used in receipt links)
+---
 
-Set secrets:
+## 4. Worker variables & secrets
+
+Edit `wrangler.toml` `[vars]`:
+
+```toml
+APP_ORIGIN = "https://your-pwa-domain.com"
+WORKER_PUBLIC_URL = "https://anon-push-api.YOUR_SUBDOMAIN.workers.dev"
+```
+
+Set secrets (never commit these):
 
 ```bash
-# Telegram (preferred names; BOT_* aliases still work)
-npx wrangler secret put TELEGRAM_BOT_TOKEN      # from @BotFather
-npx wrangler secret put TELEGRAM_WEBHOOK_SECRET # random string; must match setWebhook secret_token
-npx wrangler secret put TELEGRAM_ADMIN_ID       # your numeric Telegram user id (comma-separated for multiple)
+# Telegram
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_WEBHOOK_SECRET   # random long string
+npx wrangler secret put TELEGRAM_ADMIN_ID         # your numeric Telegram id
 
+# Web Push
 npx wrangler secret put VAPID_PUBLIC_KEY
-npx wrangler secret put VAPID_PRIVATE_KEY  # full JWK JSON from web-push, or base64url PKCS8
-npx wrangler secret put VAPID_SUBJECT      # e.g. mailto:you@example.com
+npx wrangler secret put VAPID_PRIVATE_KEY         # JWK JSON preferred, or PKCS8 base64url
+npx wrangler secret put VAPID_SUBJECT             # mailto:you@example.com
 ```
+
+Legacy aliases still accepted: `BOT_TOKEN`, `BOT_SECRET`, `ADMIN_IDS`.
 
 Deploy:
 
@@ -76,91 +120,120 @@ Deploy:
 npx wrangler deploy
 ```
 
+---
+
 ## 5. Telegram webhook
 
 ```bash
 curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
-  -d "url=https://<your-worker>/telegram/webhook" \
+  -d "url=https://<WORKER_HOST>/telegram/webhook" \
   -d "secret_token=<TELEGRAM_WEBHOOK_SECRET>"
 ```
 
-After registration, the admin receives:
+Verify:
 
-```
-NEW USER REGISTERED
-
-Username: user@example.com
-User ID: 42
-Created: 2026-11-24 03:40:00 UTC
+```bash
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 ```
 
-Admin commands: `/help`, `/whoami`, `/status`, `/payid` (admin id only).
+In Telegram, message the bot:
 
+- `/whoami` — confirm your id matches `TELEGRAM_ADMIN_ID`
+- `/help` — command list
+- `/status` — configuration health
 
-## 6. Frontend deploy
+---
+
+## 6. Frontend build & host
 
 ```bash
 npm run build
 ```
 
-Serve `dist/` over HTTPS (Cloudflare Pages, Netlify, etc.).
+Host `dist/` on HTTPS (Cloudflare Pages, any static host).
 
-**Production routing:** proxy or route these paths on the PWA domain to the Worker:
+**Routing:** Proxy these paths from the PWA origin to the Worker (or set CORS + absolute API base):
 
 - `/api/*`
 - `/pay/receipt/*`
-- `/telegram/webhook` (or call Worker URL directly for Telegram)
+- `/telegram/webhook` (usually only on the Worker hostname)
 
-Or point the PWA’s API calls at the Worker origin and set CORS `APP_ORIGIN` correctly.
-
-## 7. Local development
-
-Terminal 1 — Worker:
+Local dev:
 
 ```bash
-npx wrangler dev
+npx wrangler dev    # Worker on :8787
+npm run dev         # Vite proxies /api /pay /telegram → 8787
 ```
 
-Terminal 2 — Vite (proxies `/api`, `/pay`, `/telegram` to port 8787):
+---
 
-```bash
-npm run dev
+## 7. End-to-end smoke test
+
+1. Open PWA in browser → install to Home Screen → open standalone.
+2. **Register** a new account → Telegram admin receives **NEW USER REGISTERED**.
+3. **Log out** / **log in** with Remember me; refresh; session should restore.
+4. Tap the power control → allow notifications → subscription stored against your user.
+5. From Telegram (admin):
+
+```text
+/payid -b cba -u you@example.com -a 20.00 -n "Test Account" -t "J Fletcher" -d Goods -p +61400000000
 ```
 
-Open the printed URL. For full PWA install behaviour use a tunnel (e.g. cloudflared) over HTTPS.
+6. Phone should show push: `{Bank} — Internal Record`.
+7. Tap notification → receipt HTML opens (`/pay/receipt/N…`).
+8. Confirm date shows `D Month YYYY H:MMAM/PM (Syd/Melb time)`.
 
-## Auth flow
+---
 
-1. Install to Home Screen → standalone mode
-2. Log in or Create account (email + password)
-3. Email is unique and becomes the username
-4. **Remember me** stores the session token in `localStorage` (30 days); otherwise `sessionStorage` (1 day)
-5. On successful register, Telegram admins receive: “New user created” + username
+## 8. Admin commands
 
-## Admin `/payid`
+| Command | Access | Purpose |
+|---------|--------|---------|
+| `/start` `/help` | Public summary / full for admin | Docs |
+| `/whoami` | Public | Telegram id |
+| `/status` | Admin | Config health |
+| `/users` | Admin | Counts + recent |
+| `/user -u email` | Admin | Account detail |
+| `/payid …` | Admin | Create receipt + push |
 
+`/payid` flags: `-b -u -a -n -t` required; `-d` (default Goods), `-p` optional. Quote values with spaces.
+
+---
+
+## 9. Security notes
+
+- Passwords: PBKDF2-SHA256, 100k iterations, random salt
+- Sessions: opaque tokens in D1; Remember me 30d vs 1d
+- Login rate limit: 8 failures/email or 30/IP per 15 minutes
+- Uniform login errors (enumeration resistance)
+- SQL: parameterized statements only
+- Receipt HTML: all dynamic fields HTML-escaped
+- Push subscribe requires auth; endpoints cannot be stolen across users
+- Telegram commands require admin id; webhook secret header validated when set
+- No secrets in frontend source
+
+**Outstanding / known limits**
+
+- Web Push body is JSON + VAPID JWT (no full RFC 8291 `aes128gcm` payload encryption). Some endpoints may reject; delivery is best-effort. Receipt is still stored and linked in Telegram.
+- Receipt pages are reachable by unguessable id without a session (for notification deep links). If a session is present, ownership is enforced.
+- Official bank marks (Osko glyph, Siri logo) are CSS approximations.
+
+---
+
+## 10. Project layout
+
+```text
+src/main.jsx          Auth + install gate + dashboard
+src/style.css
+public/sw.js          Push display + notificationclick
+public/icons/         Bank notification icons
+worker/index.js       HTTP router
+worker/db.js          D1 + ensureSchema
+worker/telegram.js    Command registry
+worker/push.js        VAPID send + payment payload
+worker/receipts.js    createPayReceipt validation
+worker/banks.js       Bank keys + amount parsing
+worker/receiptTemplates/
+migrations/
+wrangler.toml
 ```
-/payid -b <bank> -u <user> -a <amount> -n <name> -t <target> [-d <description>] [-p <phone>]
-```
-
-- Required: `-b -u -a -n -t`
-- Banks: `commbank` (`cba`), `westpac`, `anz`, `nab`, `up`
-- User must exist and have a Web Push subscription
-- Creates a `pay_receipts` row, sends push (title = bank name, body = Paid {amount} to {target}), icon = `/icons/{bank}.png`
-- Notification click opens `https://{worker}/pay/receipt/{id}`
-- Receipt id: `N` + digits; date shown in Australia/Sydney as `D Month YYYY H:MMAM/PM (Syd/Melb time)`
-
-## D1 tables
-
-- `users` — email (unique), password_hash, password_salt
-- `sessions` — token, user_id, expires_at, remember
-- `push_subscriptions` — endpoint, keys, user_id
-- `pay_receipts` — id, user_id, amount, sender_name, target_name, description, phone, bank, created_at
-
-## Adding a new bank template
-
-Upload a screenshot + bank name. Templates live in `worker/receiptTemplates/{bank}.js` and export `render(data)`. Icons go in `public/icons/{bank}.png`.
-
-## Scope note
-
-The five protection toggles and telemetry values are UI only. Live capabilities are: install gate, auth, push subscription, Telegram admin commands, and receipt pages.

@@ -40,7 +40,7 @@ export function render(raw) {
       border-bottom: 1px solid #e5e5ea;
       min-height: 52px;
     }
-    .nav a, .nav span.action {
+    .nav a, .nav button.action, .nav span.action {
       color: #111;
       font-size: 17px;
       font-weight: 400;
@@ -197,7 +197,7 @@ export function render(raw) {
   <header class="nav">
     <a class="close" href="javascript:history.length>1?history.back():window.close()" aria-label="Close">✕</a>
     <span class="title">Receipt</span>
-    <span class="action share">Share</span>
+    <button type="button" class="action share" onclick="if(navigator.share)navigator.share({title:document.title,url:location.href}).catch(()=>{})">Share</button>
   </header>
   <div class="body">
     <div class="check" aria-hidden="true">

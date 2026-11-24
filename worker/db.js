@@ -272,3 +272,56 @@ export async function getReceipt(env, id) {
     .bind(id)
     .first();
 }
+
+
+export async function getUserStats(env) {
+  const total = await env.DB.prepare(
+    `SELECT COUNT(*) AS c FROM users`
+  ).first();
+  const active = await env.DB.prepare(
+    `SELECT COUNT(*) AS c FROM users WHERE status = 'active'`
+  ).first();
+  const recent = await env.DB.prepare(
+    `SELECT id, email, status, created_at
+     FROM users
+     ORDER BY created_at DESC
+     LIMIT 5`
+  ).all();
+  return {
+    total: Number(total?.c || 0),
+    active: Number(active?.c || 0),
+    recent: recent?.results || [],
+  };
+}
+
+export async function getUserDetail(env, email) {
+  const user = await findUserByEmail(env, email);
+  if (!user) return null;
+  const push = await env.DB.prepare(
+    `SELECT endpoint, updated_at FROM push_subscriptions
+     WHERE user_id = ?
+     ORDER BY updated_at DESC
+     LIMIT 1`
+  )
+    .bind(user.id)
+    .first();
+  const sessions = await env.DB.prepare(
+    `SELECT COUNT(*) AS c FROM sessions
+     WHERE user_id = ?
+       AND expires_at > datetime('now')`
+  )
+    .bind(user.id)
+    .first();
+  const receipts = await env.DB.prepare(
+    `SELECT COUNT(*) AS c FROM pay_receipts WHERE user_id = ?`
+  )
+    .bind(user.id)
+    .first();
+  return {
+    user,
+    hasPush: Boolean(push),
+    pushUpdatedAt: push?.updated_at || null,
+    activeSessions: Number(sessions?.c || 0),
+    receiptCount: Number(receipts?.c || 0),
+  };
+}

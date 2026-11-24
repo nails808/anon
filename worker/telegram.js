@@ -13,7 +13,7 @@ import {
   getUserStats,
   getUserDetail,
 } from './db.js';
-import { sendWebPush } from './push.js';
+import { sendWebPush, buildPaymentPushPayload } from './push.js';
 import { json } from './http.js';
 import { createPayReceipt } from './receipts.js';
 import { resolveBank, BANK_KEYS } from './banks.js';
@@ -503,17 +503,12 @@ registerCommand('/payid', {
       ? `${workerOrigin}/pay/receipt/${receipt.id}`
       : `/pay/receipt/${receipt.id}`;
 
-    let body = `Paid $${receipt.amount} to ${receipt.target_name}`;
-    if (receipt.phone) body += `\n${receipt.phone}`;
-
-    const pushResult = await sendWebPush(ctx.env, sub, {
-      title: bank.display,
-      body,
-      icon: bank.icon,
-      badge: bank.icon,
-      url: receiptUrl,
-      data: { url: receiptUrl, receiptId: receipt.id },
+    const pushPayload = buildPaymentPushPayload({
+      bank,
+      receipt,
+      receiptUrl,
     });
+    const pushResult = await sendWebPush(ctx.env, sub, pushPayload);
 
     const statusLine = pushResult.ok
       ? `✅ Push sent (${pushResult.status || 201})`

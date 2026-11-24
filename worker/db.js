@@ -221,29 +221,71 @@ export async function countRecentFailures(env, email, ip, windowMinutes = 15) {
   };
 }
 
+/**
+ * Save or refresh a push subscription for an authenticated user.
+ * Rejects if the endpoint is already owned by a different user_id.
+ */
 export async function savePushSubscription(env, { endpoint, p256dh, auth, userId }) {
+  if (!userId) throw new Error('userId is required for push subscription');
+  if (!endpoint || !p256dh || !auth) throw new Error('Invalid subscription keys');
+
+  const existing = await env.DB.prepare(
+    `SELECT endpoint, user_id FROM push_subscriptions WHERE endpoint = ?`
+  )
+    .bind(endpoint)
+    .first();
+
+  if (existing && existing.user_id != null && Number(existing.user_id) !== Number(userId)) {
+    const err = new Error('This device subscription is already linked to another account');
+    err.code = 'SUBSCRIPTION_OWNED';
+    throw err;
+  }
+
   await env.DB.prepare(
     `INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_id, created_at, updated_at)
      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(endpoint) DO UPDATE SET
        p256dh = excluded.p256dh,
        auth = excluded.auth,
-       user_id = COALESCE(excluded.user_id, push_subscriptions.user_id),
-       updated_at = datetime('now')`
+       user_id = excluded.user_id,
+       updated_at = datetime('now')
+     WHERE push_subscriptions.user_id IS NULL
+        OR push_subscriptions.user_id = excluded.user_id`
   )
-    .bind(endpoint, p256dh, auth, userId ?? null)
+    .bind(endpoint, p256dh, auth, userId)
     .run();
 }
 
 export async function getPushForUser(env, userId) {
   return env.DB.prepare(
-    `SELECT endpoint, p256dh, auth FROM push_subscriptions
+    `SELECT endpoint, p256dh, auth, user_id, updated_at FROM push_subscriptions
      WHERE user_id = ?
      ORDER BY updated_at DESC
      LIMIT 1`
   )
     .bind(userId)
     .first();
+}
+
+export async function deletePushSubscription(env, endpoint) {
+  if (!endpoint) return;
+  await env.DB.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ?`)
+    .bind(endpoint)
+    .run();
+}
+
+export async function deletePushSubscriptionsForUser(env, userId, endpoint = null) {
+  if (endpoint) {
+    await env.DB.prepare(
+      `DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?`
+    )
+      .bind(userId, endpoint)
+      .run();
+    return;
+  }
+  await env.DB.prepare(`DELETE FROM push_subscriptions WHERE user_id = ?`)
+    .bind(userId)
+    .run();
 }
 
 /**

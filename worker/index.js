@@ -6,6 +6,7 @@ import {
   getSession,
   deleteSession,
   savePushSubscription,
+  deletePushSubscriptionsForUser,
   getReceipt,
   recordLoginAttempt,
   countRecentFailures,
@@ -217,7 +218,7 @@ async function handleLogout(request, env) {
 }
 
 async function handleSubscribe(request, env) {
-  // Require authentication so subscriptions are always tied to a user
+  // Require authentication — subscriptions are always owned by the session user
   const session = await requireUser(request, env);
   if (!session) return unauthorized('Login required to enable notifications');
 
@@ -240,13 +241,35 @@ async function handleSubscribe(request, env) {
     return badRequest('Invalid push subscription');
   }
 
-  await savePushSubscription(env, {
-    endpoint,
-    p256dh,
-    auth,
-    userId: session.user_id,
-  });
-  return json({ ok: true, status: 'subscribed', linked: true }, 201);
+  try {
+    await savePushSubscription(env, {
+      endpoint,
+      p256dh,
+      auth,
+      userId: session.user_id,
+    });
+  } catch (e) {
+    if (e?.code === 'SUBSCRIPTION_OWNED') {
+      return json({ ok: false, error: e.message }, 409);
+    }
+    throw e;
+  }
+  return json({ ok: true, status: 'subscribed', linked: true, userId: session.user_id }, 201);
+}
+
+async function handleUnsubscribe(request, env) {
+  const session = await requireUser(request, env);
+  if (!session) return unauthorized('Login required');
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    /* optional body */
+  }
+  const endpoint = typeof body.endpoint === 'string' ? body.endpoint : null;
+  await deletePushSubscriptionsForUser(env, session.user_id, endpoint);
+  return json({ ok: true, status: 'unsubscribed' });
 }
 
 async function handleReceipt(_request, env, id) {
@@ -298,6 +321,8 @@ export default {
         response = await handleLogout(request, env);
       } else if (path === '/api/subscribe' && request.method === 'POST') {
         response = await handleSubscribe(request, env);
+      } else if (path === '/api/unsubscribe' && request.method === 'POST') {
+        response = await handleUnsubscribe(request, env);
       } else if (path.startsWith('/pay/receipt/') && request.method === 'GET') {
         const id = path.slice('/pay/receipt/'.length);
         response = await handleReceipt(request, env, id);

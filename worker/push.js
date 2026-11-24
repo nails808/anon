@@ -1,8 +1,11 @@
 /**
- * Minimal Web Push (VAPID) sender for Cloudflare Workers.
- * Requires env.VAPID_PUBLIC_KEY (base64url), env.VAPID_PRIVATE_KEY (JWK JSON string or base64url PKCS8),
- * env.VAPID_SUBJECT (mailto:...).
+ * Web Push (VAPID) sender for Cloudflare Workers.
+ * Requires env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY (JWK JSON preferred), env.VAPID_SUBJECT.
+ *
+ * Successful delivery is NOT proof of payment — these are internal app records only.
  */
+
+import { deletePushSubscription } from './db.js';
 
 function base64UrlToUint8Array(base64Url) {
   const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
@@ -23,7 +26,6 @@ async function importVapidPrivateKey(env) {
   const raw = String(env.VAPID_PRIVATE_KEY || '').trim();
   if (!raw) throw new Error('VAPID_PRIVATE_KEY is not set');
 
-  // Prefer full JWK JSON
   if (raw.startsWith('{')) {
     const jwk = JSON.parse(raw);
     return crypto.subtle.importKey(
@@ -35,7 +37,6 @@ async function importVapidPrivateKey(env) {
     );
   }
 
-  // Fallback: base64url PKCS8
   const keyData = base64UrlToUint8Array(raw);
   return crypto.subtle.importKey(
     'pkcs8',
@@ -60,18 +61,36 @@ async function createVapidJwt(env, audience) {
   const headerB64 = uint8ArrayToBase64Url(enc.encode(JSON.stringify(header)));
   const payloadB64 = uint8ArrayToBase64Url(enc.encode(JSON.stringify(payload)));
   const data = enc.encode(`${headerB64}.${payloadB64}`);
-
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, data);
-  // Convert DER? Web Crypto returns raw r||s for ECDSA; JWT needs that as base64url
   const sigB64 = uint8ArrayToBase64Url(new Uint8Array(sig));
   return `${headerB64}.${payloadB64}.${sigB64}`;
 }
 
 /**
+ * Build standard payment-record notification payload.
+ */
+export function buildPaymentPushPayload({ bank, receipt, receiptUrl }) {
+  let body = `Payment record created: $${receipt.amount} to ${receipt.target_name}`;
+  if (receipt.phone) body += `\n${receipt.phone}`;
+
+  return {
+    title: `${bank.display} — Internal Record`,
+    body,
+    icon: bank.icon || '/icons/commbank.png',
+    badge: '/shield.svg',
+    url: receiptUrl,
+    data: {
+      url: receiptUrl,
+      receiptId: receipt.id,
+      createdAt: receipt.created_at,
+      kind: 'pay_receipt',
+    },
+  };
+}
+
+/**
  * Send a push notification to a single subscription.
- * @param {object} env
- * @param {{ endpoint: string, p256dh: string, auth: string }} sub
- * @param {{ title: string, body: string, icon?: string, badge?: string, url?: string, data?: object }} payload
+ * On 404/410, deletes the stored subscription row.
  */
 export async function sendWebPush(env, sub, payload) {
   if (!sub?.endpoint || !sub?.p256dh || !sub?.auth) {
@@ -90,16 +109,12 @@ export async function sendWebPush(env, sub, payload) {
     body: payload.body || '',
     icon: payload.icon || '/shield.svg',
     badge: payload.badge || '/shield.svg',
-    url: payload.url || '/',
-    data: payload.data || {},
+    url: payload.url || payload.data?.url || '/',
+    data: {
+      url: payload.url || payload.data?.url || '/',
+      ...(payload.data || {}),
+    },
   });
-
-  // RFC 8291 encryption is complex; many push services accept unencrypted
-  // payloads when the subscription was created with userVisibleOnly.
-  // For production reliability we send as-is; browsers that require encryption
-  // will still display via the SW if the service accepts it.
-  // Full aes128gcm is omitted here to keep the Worker dependency-free.
-  // If delivery fails, the admin still has the receipt id in Telegram.
 
   const headers = {
     Authorization: `vapid t=${jwt}, k=${env.VAPID_PUBLIC_KEY}`,
@@ -114,9 +129,26 @@ export async function sendWebPush(env, sub, payload) {
       headers,
       body,
     });
+
+    // Gone / Not Found → drop invalid subscription
+    if (res.status === 404 || res.status === 410) {
+      try {
+        await deletePushSubscription(env, sub.endpoint);
+      } catch (e) {
+        console.log('deletePushSubscription failed', e);
+      }
+      return {
+        ok: false,
+        status: res.status,
+        error: 'Subscription expired or invalid (removed)',
+        removed: true,
+      };
+    }
+
     if (res.status === 201 || res.status === 200 || res.status === 204) {
       return { ok: true, status: res.status };
     }
+
     const text = await res.text().catch(() => '');
     return { ok: false, status: res.status, error: text.slice(0, 200) };
   } catch (e) {

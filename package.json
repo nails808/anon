@@ -1,23 +1,26 @@
 {
-  "name": "anon-privacy-pwa",
+  "name": "website",
   "private": true,
-  "version": "1.2.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "worker:dev": "wrangler dev",
-    "worker:deploy": "wrangler deploy",
-    "d1:migrate": "wrangler d1 migrations apply anon-push --remote"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "lucide-react": "^0.468.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.0.5"
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.90.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6"
   }
 }

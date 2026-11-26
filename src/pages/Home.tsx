@@ -39,7 +39,6 @@ export function Home() {
         <div className="container">
           <div className="section-head">
             <h2>Modules inside the console</h2>
-            <p>Each tile is a consumer-facing protection story — the product surface the victim sees.</p>
           </div>
           <div className="feature-grid">
             {features.map((f) => (
@@ -97,9 +96,6 @@ export function Home() {
             </div>
             <div>
               <a className="btn" href={APK_URL}>Download APK</a>
-              <p className="muted" style={{ fontSize: 12, marginTop: 10, maxWidth: 280 }}>
-                Placeholder URL — replace <code className="mono">APK_URL</code> in <code className="mono">Home.tsx</code> before launch.
-              </p>
             </div>
           </div>
         </div>

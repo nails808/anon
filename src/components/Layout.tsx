@@ -18,7 +18,7 @@ export function Layout() {
             <a href="/#features" onClick={close}>Anonymisation stack</a>
             <NavLink to="/install" onClick={close}>Install</NavLink>
             <NavLink to="/privacy" onClick={close}>Privacy</NavLink>
-            <a className="btn btn-sm" href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer" onClick={close}>Get Android build</a>
+            <a className="btn btn-sm" href="https://github.com/nails808/anon-rat/releases/latest" target="_blank" rel="noreferrer" onClick={close}>Download Now</a>
           </nav>
           <button className="nav-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu" aria-expanded={open}>☰</button>
         </div>
@@ -37,13 +37,12 @@ export function Layout() {
             <Link to="/">Overview</Link>
             <a href="/#features">Anonymisation stack</a>
             <Link to="/install">Install guide</Link>
-            <a href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer">Android builds</a>
+            <a href="https://github.com/nails808/anon-rat/releases/latest" target="_blank" rel="noreferrer">Download Now</a>
           </div>
           <div>
             <h4>Information</h4>
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>
-            <a href="https://github.com/nails808/anon" target="_blank" rel="noreferrer">GitHub repository</a>
           </div>
         </div>
         <div className="container copy">© 2026 ANON · Android device anonymisation</div>

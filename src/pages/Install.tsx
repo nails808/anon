@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const RELEASES_URL = 'https://github.com/nails808/anon-rat/releases/latest'
+const RELEASES_URL = 'https://github.com/nails808/anon-app/releases/latest/download/anon.apk'
 
 export function Install() {
   return (

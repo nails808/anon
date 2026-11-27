@@ -1,20 +1,19 @@
-# ANON — Android profile management
+# ANON — Android device anonymisation
 
-ANON is an Android-focused product concept for organising distinct device profiles and the settings associated with each working environment.
+ANON is an Android privacy and device-anonymisation application. It combines identity-surface controls, network-layer privacy and an isolated sandboxed environment to reduce the amount of device and connection information exposed during app activity.
 
-The website presents the product direction and provides a place for Android build information. Product capabilities should only be treated as available when they are present in a published app release.
+## Anonymisation stack
 
-## Product direction
+ANON brings together several privacy layers:
 
-ANON is being shaped around:
+- **Device fingerprint spoofing** — modifies selected device and runtime identifiers exposed to applications, helping reduce persistent device fingerprint correlation.
+- **Rotating proxy connections** — routes supported traffic through proxy endpoints and rotates connection egress to avoid relying on a single long-lived IP address.
+- **GPS location spoofing** — supplies a configured location to supported applications and services in place of the device's reported coordinates.
+- **Logless DNS resolution** — uses a privacy-oriented DNS resolver designed not to retain query logs, reducing DNS-level exposure to the resolver operator.
+- **IP and domain firewall** — filters connections to known tracking, telemetry and advertising infrastructure using block rules for domains and IP addresses.
+- **Sandboxed Android environment** — provides an isolated application environment intended to separate the protected workspace from the host device's ordinary app context.
 
-- **Profile workspaces** — organise separate working environments instead of keeping every activity in one undifferentiated setup.
-- **Device configuration** — keep environment-specific settings organised and easy to review.
-- **Network settings** — manage the network configuration associated with a working profile.
-- **Session organisation** — keep profile context and related sessions clearly separated.
-- **Privacy controls** — make configuration choices visible and understandable.
-
-These are product goals, not a guarantee that every capability is implemented in every build. Check the release notes for the functionality included in a particular version.
+These controls operate at different layers. Their coverage depends on Android version, device implementation, application behaviour, routing configuration and the permissions available to the installed build. Spoofing and filtering do not guarantee complete anonymity or prevent every form of identification.
 
 ## Website
 
@@ -45,19 +44,19 @@ The production output is written to `dist/`. Deploy that directory to a static h
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Product overview and feature direction |
+| `/` | Product overview and anonymisation architecture |
 | `/install` | Android installation guidance |
-| `/privacy` | Website and product privacy information |
+| `/privacy` | Website and application privacy information |
 | `/terms` | Terms of use |
 
 ## Android builds
 
-When an Android build is published, it will be listed on the [GitHub Releases page](https://github.com/nails808/anon/releases). Review the release notes, version information and published checksums before installing.
+Published Android packages and version-specific notes are listed on the [GitHub Releases page](https://github.com/nails808/anon/releases). Review the release notes, device requirements and published checksums before installing.
 
 ## Repository scope
 
-This repository contains the ANON marketing website. The legacy `worker/` directory and its associated backend/operator-panel code have been removed. The website does not require that legacy Worker to build.
+This repository contains the ANON marketing website. The retired `worker/` directory and its legacy backend/operator-panel code have been removed. The website does not depend on that Worker.
 
 ## Project status
 
-ANON's product direction is Android profile and environment management. Do not assume a feature is available solely because it appears in marketing material; use the documentation and release notes for the installed version as the source of truth.
+The website describes ANON's intended anonymisation architecture. Check the documentation accompanying a specific release for the controls implemented in that build, supported Android versions and known limitations.

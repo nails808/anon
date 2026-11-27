@@ -8,37 +8,37 @@ export function Home() {
     <main>
       <section className="container hero">
         <div>
-          <div className="eyebrow">// android · profile management</div>
+          <div className="eyebrow">// android · device anonymisation</div>
           <h1>
-            Different profiles.<br />
-            <span>Clear boundaries.</span>
+            Reduce your footprint.<br />
+            <span>Control your exposure.</span>
           </h1>
           <p className="lede">
-            ANON is an Android-focused profile management project built around a simple idea:
-            keep device environments, configuration and session context organised instead of
-            letting everything blur together.
+            ANON is a layered Android anonymisation environment. It combines device fingerprint
+            spoofing, rotating proxy egress, GPS location spoofing, logless DNS resolution,
+            tracker-focused IP and domain filtering, and sandbox isolation in one privacy stack.
           </p>
           <div className="hero-cta">
-            <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">View Android builds</a>
+            <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">Get ANON for Android</a>
             <Link className="btn btn-ghost" to="/install">Installation guide</Link>
           </div>
           <div className="trust">
-            <span>Android-focused</span>
-            <span>Profile-first workflow</span>
-            <span>Configuration-led</span>
+            <span>Fingerprint controls</span>
+            <span>Rotating proxy egress</span>
+            <span>Sandbox isolation</span>
           </div>
         </div>
         <div className="hero-visual">
-          <img src="/brand/hero.jpg" alt="ANON Android profile management visual" />
-          <div className="hero-badge">PROFILE · ENVIRONMENT CONTROL</div>
+          <img src="/brand/hero.jpg" alt="ANON Android anonymisation interface artwork" />
+          <div className="hero-badge">ANON · PRIVACY STACK ACTIVE</div>
         </div>
       </section>
 
       <section id="features" className="section">
         <div className="container">
           <div className="section-head">
-            <h2>One workspace. Distinct environments.</h2>
-            <p>ANON is being developed around the tools and configuration that make separate Android profiles easier to manage.</p>
+            <h2>Privacy at multiple layers</h2>
+            <p>Device identity, network metadata, location signals and application execution are separate exposure surfaces. ANON brings controls for each into one Android privacy stack.</p>
           </div>
           <div className="feature-grid">
             {features.map((f) => (
@@ -57,15 +57,15 @@ export function Home() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="section-head">
-            <h2>A more deliberate workflow</h2>
-            <p>Set up an environment, review its configuration, and keep each profile’s context clear.</p>
+            <h2>A layered anonymisation workflow</h2>
+            <p>Coordinate the main identity and network controls from a dedicated Android environment.</p>
           </div>
           <div className="steps">
             {[
-              ['01', 'Create an environment', 'Start with a distinct profile for the task or account context you want to organise.'],
-              ['02', 'Review its configuration', 'Keep the relevant device and network settings associated with that environment.'],
-              ['03', 'Keep sessions organised', 'Use clear profile boundaries to reduce accidental overlap between workflows.'],
-              ['04', 'Check the release notes', 'Confirm which capabilities are included in the Android build you install.'],
+              ['01', 'Isolate the environment', 'Use the sandboxed workspace to separate supported app data and execution context.'],
+              ['02', 'Configure identity signals', 'Apply the available fingerprint and GPS spoofing controls for the environment.'],
+              ['03', 'Route and filter traffic', 'Configure proxy rotation, privacy DNS and IP/domain firewall rules.'],
+              ['04', 'Review your exposure', 'Check the active configuration and the limitations documented for your app version.'],
             ].map(([n, t, d]) => (
               <div className="step" key={n}>
                 <div className="step-num">{n}</div>
@@ -87,9 +87,9 @@ export function Home() {
           <div className="download-box">
             <div>
               <h2 style={{ margin: '0 0 6px' }}>ANON for Android</h2>
-              <p className="muted" style={{ margin: 0 }}>Check the releases page for available builds, version details and installation notes.</p>
+              <p className="muted" style={{ margin: 0 }}>Get the current package and review version-specific capabilities and requirements.</p>
               <div className="meta">
-                <span>Android project</span>
+                <span>Android application</span>
                 <span>Release notes</span>
                 <span>Build details</span>
               </div>

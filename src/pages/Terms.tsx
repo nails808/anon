@@ -10,18 +10,27 @@ export function Terms() {
         you own or are authorised to manage, and to comply with the laws and obligations that apply to you.
       </p>
 
-      <h2>Product information</h2>
+      <h2>Product functionality</h2>
       <p>
-        ANON is an Android profile and environment management project. Website descriptions explain the
-        product direction and may include capabilities that are still in development. A feature should be
-        considered available only when it is included in the specific release you install and documented
-        for that version.
+        ANON is an Android device-anonymisation application. Its privacy architecture is described as
+        including device fingerprint spoofing, rotating proxy connections, GPS location spoofing,
+        logless DNS resolution, IP and domain firewall filtering, and sandbox isolation. The precise
+        controls, supported applications and platform compatibility may vary by release.
       </p>
 
-      <h2>Third-party platforms</h2>
+      <h2>No guarantee of anonymity</h2>
       <p>
-        Android, device manufacturers, hosting providers and other third-party services are independent of
-        ANON and may have their own terms, policies and technical requirements.
+        Privacy controls can reduce selected device and network signals, but no software can guarantee
+        complete anonymity or prevent every form of tracking, correlation, identification or data
+        disclosure. Results depend on device configuration, Android behaviour, application design,
+        network providers and third-party services.
+      </p>
+
+      <h2>Third-party services</h2>
+      <p>
+        Proxy operators, DNS resolver operators, Android, device manufacturers and other third-party
+        services are independent providers. Their availability, logging practices, terms and privacy
+        policies are outside ANON’s control.
       </p>
 
       <h2>Availability and changes</h2>

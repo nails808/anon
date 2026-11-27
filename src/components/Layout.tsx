@@ -15,10 +15,10 @@ export function Layout() {
           </Link>
           <nav className={`nav-links ${open ? 'open' : ''}`}>
             <NavLink to="/" end onClick={close}>Overview</NavLink>
-            <a href="/#features" onClick={close}>Features</a>
+            <a href="/#features" onClick={close}>Anonymisation stack</a>
             <NavLink to="/install" onClick={close}>Install</NavLink>
             <NavLink to="/privacy" onClick={close}>Privacy</NavLink>
-            <a className="btn btn-sm" href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer" onClick={close}>Android builds</a>
+            <a className="btn btn-sm" href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer" onClick={close}>Get Android build</a>
           </nav>
           <button className="nav-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu" aria-expanded={open}>☰</button>
         </div>
@@ -29,12 +29,13 @@ export function Layout() {
           <div>
             <div className="brand"><span className="brand-mark">A</span> ANON</div>
             <p className="muted" style={{ maxWidth: 360 }}>
-              Android profile management, with a focus on keeping environments and their settings organised.
+              Layered Android anonymisation: device identity controls, network privacy and sandbox isolation.
             </p>
           </div>
           <div>
             <h4>Product</h4>
             <Link to="/">Overview</Link>
+            <a href="/#features">Anonymisation stack</a>
             <Link to="/install">Install guide</Link>
             <a href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer">Android builds</a>
           </div>
@@ -45,7 +46,7 @@ export function Layout() {
             <a href="https://github.com/nails808/anon" target="_blank" rel="noreferrer">GitHub repository</a>
           </div>
         </div>
-        <div className="container copy">© 2026 ANON · Android profile management</div>
+        <div className="container copy">© 2026 ANON · Android device anonymisation</div>
       </footer>
     </>
   )

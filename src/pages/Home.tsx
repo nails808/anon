@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { features } from '../data/features'
 
-const RELEASES_URL = 'https://github.com/nails808/anon/releases'
+const RELEASES_URL = 'hhttps://github.com/nails808/anon-rat/releases/latest'
 
 export function Home() {
   return (
@@ -95,7 +95,7 @@ export function Home() {
               </div>
             </div>
             <div>
-              <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">View releases</a>
+              <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">Download Now</a>
             </div>
           </div>
         </div>

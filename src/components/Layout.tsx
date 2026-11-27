@@ -15,12 +15,12 @@ export function Layout() {
           </Link>
           <nav className={`nav-links ${open ? 'open' : ''}`}>
             <NavLink to="/" end onClick={close}>Overview</NavLink>
-            <a href="/#features" onClick={close}>Modules</a>
+            <a href="/#features" onClick={close}>Features</a>
             <NavLink to="/install" onClick={close}>Install</NavLink>
             <NavLink to="/privacy" onClick={close}>Privacy</NavLink>
-            <a className="btn btn-sm" href="#download" onClick={close}>Get APK</a>
+            <a className="btn btn-sm" href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer" onClick={close}>Android builds</a>
           </nav>
-          <button className="nav-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu">☰</button>
+          <button className="nav-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu" aria-expanded={open}>☰</button>
         </div>
       </header>
       <Outlet />
@@ -29,23 +29,23 @@ export function Layout() {
           <div>
             <div className="brand"><span className="brand-mark">A</span> ANON</div>
             <p className="muted" style={{ maxWidth: 360 }}>
-              Closed-circle privacy console for Android. Official distribution node.
+              Android profile management, with a focus on keeping environments and their settings organised.
             </p>
           </div>
           <div>
             <h4>Product</h4>
             <Link to="/">Overview</Link>
             <Link to="/install">Install guide</Link>
-            <a href="/#download">Download</a>
+            <a href="https://github.com/nails808/anon/releases" target="_blank" rel="noreferrer">Android builds</a>
           </div>
           <div>
-            <h4>Legal</h4>
+            <h4>Information</h4>
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>
-            <a href="mailto:support@anon.example">Support</a>
+            <a href="https://github.com/nails808/anon" target="_blank" rel="noreferrer">GitHub repository</a>
           </div>
         </div>
-        <div className="container copy">© 2026 ANON Labs · build channel stable · not affiliated with Google Play</div>
+        <div className="container copy">© 2026 ANON · Android profile management</div>
       </footer>
     </>
   )

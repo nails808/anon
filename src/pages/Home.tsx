@@ -1,49 +1,49 @@
 import { Link } from 'react-router-dom'
 import { features } from '../data/features'
 
-const APK_URL = 'https://github.com/nails808/anon-rat/releases/latest/download/anon.apk'
+const RELEASES_URL = 'https://github.com/nails808/anon/releases'
 
 export function Home() {
   return (
     <main>
       <section className="container hero">
         <div>
-          <div className="eyebrow">// closed circle · android console</div>
+          <div className="eyebrow">// android · profile management</div>
           <h1>
-            Less signal.<br />
-            <span>More control.</span>
+            Different profiles.<br />
+            <span>Clear boundaries.</span>
           </h1>
           <p className="lede">
-            ANON is a polished privacy console for operators who prefer sideloaded builds
-            over storefront noise. Cloak device fingerprints, harden DNS, and keep a clean
-            shield status on-device.
+            ANON is an Android-focused profile management project built around a simple idea:
+            keep device environments, configuration and session context organised instead of
+            letting everything blur together.
           </p>
           <div className="hero-cta">
-            <a className="btn" href="#download">Download APK</a>
-            <Link className="btn btn-ghost" to="/install">Install guide</Link>
+            <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">View Android builds</a>
+            <Link className="btn btn-ghost" to="/install">Installation guide</Link>
           </div>
           <div className="trust">
-            <span>v3.0.0</span>
-            <span>Android 8.0+</span>
-            <span>offline-first UI</span>
-            <span>no Play dependency</span>
+            <span>Android-focused</span>
+            <span>Profile-first workflow</span>
+            <span>Configuration-led</span>
           </div>
         </div>
         <div className="hero-visual">
-          <img src="/brand/hero.jpg" alt="ANON shield visual" />
-          <div className="hero-badge">STATUS · SHIELD READY</div>
+          <img src="/brand/hero.jpg" alt="ANON Android profile management visual" />
+          <div className="hero-badge">PROFILE · ENVIRONMENT CONTROL</div>
         </div>
       </section>
 
       <section id="features" className="section">
         <div className="container">
           <div className="section-head">
-            <h2>Modules inside the console</h2>
+            <h2>One workspace. Distinct environments.</h2>
+            <p>ANON is being developed around the tools and configuration that make separate Android profiles easier to manage.</p>
           </div>
           <div className="feature-grid">
             {features.map((f) => (
               <article className="feature-card" key={f.id}>
-                <img src={f.image} alt={f.title} loading="lazy" />
+                <img src={f.image} alt="" loading="lazy" />
                 <div className="body">
                   <h3>{f.title}</h3>
                   <p>{f.blurb}</p>
@@ -57,15 +57,15 @@ export function Home() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="section-head">
-            <h2>Operational path</h2>
-            <p>From download to shield-active in four moves.</p>
+            <h2>A more deliberate workflow</h2>
+            <p>Set up an environment, review its configuration, and keep each profile’s context clear.</p>
           </div>
           <div className="steps">
             {[
-              ['01', 'Pull the APK', 'Grab the stable build from this node. Hash published with each release.'],
-              ['02', 'Disable Play Protect scan', 'Required for sideloaded packages outside the Play catalog — full steps on the install page.'],
-              ['03', 'Grant listed permissions', 'Every permission maps to a stated console feature. No silent extras.'],
-              ['04', 'Toggle protection layers', 'Open the dashboard and bring the score to full cover.'],
+              ['01', 'Create an environment', 'Start with a distinct profile for the task or account context you want to organise.'],
+              ['02', 'Review its configuration', 'Keep the relevant device and network settings associated with that environment.'],
+              ['03', 'Keep sessions organised', 'Use clear profile boundaries to reduce accidental overlap between workflows.'],
+              ['04', 'Check the release notes', 'Confirm which capabilities are included in the Android build you install.'],
             ].map(([n, t, d]) => (
               <div className="step" key={n}>
                 <div className="step-num">{n}</div>
@@ -77,7 +77,7 @@ export function Home() {
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: 22 }}>
-            <Link className="btn btn-ghost" to="/install">Open full install walkthrough</Link>
+            <Link className="btn btn-ghost" to="/install">Read the Android install guide</Link>
           </div>
         </div>
       </section>
@@ -86,16 +86,16 @@ export function Home() {
         <div className="container">
           <div className="download-box">
             <div>
-              <h2 style={{ margin: '0 0 6px' }}>Download ANON for Android</h2>
-              <p className="muted" style={{ margin: 0 }}>Stable channel · universal APK · signed release build</p>
+              <h2 style={{ margin: '0 0 6px' }}>ANON for Android</h2>
+              <p className="muted" style={{ margin: 0 }}>Check the releases page for available builds, version details and installation notes.</p>
               <div className="meta">
-                <span>version 3.0.0</span>
-                <span>~28 MB</span>
-                <span>API 26+</span>
+                <span>Android project</span>
+                <span>Release notes</span>
+                <span>Build details</span>
               </div>
             </div>
             <div>
-              <a className="btn" href={APK_URL}>Download APK</a>
+              <a className="btn" href={RELEASES_URL} target="_blank" rel="noreferrer">View releases</a>
             </div>
           </div>
         </div>

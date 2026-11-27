@@ -18,7 +18,7 @@ export function Layout() {
             <a href="/#features" onClick={close}>Anonymisation stack</a>
             <NavLink to="/install" onClick={close}>Install</NavLink>
             <NavLink to="/privacy" onClick={close}>Privacy</NavLink>
-            <a className="btn btn-sm" href="https://github.com/nails808/anon-rat/releases/latest" target="_blank" rel="noreferrer" onClick={close}>Download Now</a>
+            <a className="btn btn-sm" href="https://github.com/nails808/anon-app/releases/latest/download/anon.apk" target="_blank" rel="noreferrer" onClick={close}>Download Now</a>
           </nav>
           <button className="nav-toggle" onClick={() => setOpen((v) => !v)} aria-label="Menu" aria-expanded={open}>☰</button>
         </div>
@@ -37,7 +37,7 @@ export function Layout() {
             <Link to="/">Overview</Link>
             <a href="/#features">Anonymisation stack</a>
             <Link to="/install">Install guide</Link>
-            <a href="https://github.com/nails808/anon-rat/releases/latest" target="_blank" rel="noreferrer">Download Now</a>
+            <a href="https://github.com/nails808/anon-app/releases/latest/download/anon.apk" target="_blank" rel="noreferrer">Download Now</a>
           </div>
           <div>
             <h4>Information</h4>
